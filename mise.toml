@@ -92,6 +92,10 @@ run = ".venv/bin/python scripts/fetch_nushell_examples.py"
 description = "Have the base language model write the requests for every chain (cached)"
 run = ".venv/bin/python scripts/write_requests.py"
 
+[tasks.sandbox]
+description = "Open the notebook on a copy of runs/ (runs-sandbox/), so training and new data never replace the saved results"
+run = "mkdir -p runs-sandbox && rsync -a --exclude 'backup-*' --exclude 'final-backup' --exclude 'previous' runs/ runs-sandbox/ && NUSHELL_LFM_RUNS=runs-sandbox .venv/bin/marimo run notebook.py --port 2722"
+
 [tasks.eval-endpoint]
 description = "Score any OpenAI-compatible chat endpoint on the held-out requests (see scripts/eval_endpoint.py --help)"
 run = ".venv/bin/python scripts/eval_endpoint.py"

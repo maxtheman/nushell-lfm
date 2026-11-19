@@ -27,7 +27,7 @@ def _():
     import numpy as np
     import pandas as pd
 
-    from nushell_lfm.core import MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, function_source, mlx_thread, model_path, nu_path, show_path
+    from nushell_lfm.core import MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, SANDBOX, function_source, mlx_thread, model_path, nu_path, show_path
 
     return (
         asyncio,
@@ -37,6 +37,7 @@ def _():
         Path,
         ROOT,
         RUNS_DIR,
+        SANDBOX,
         ThreadPoolExecutor,
         alt,
         function_source,
@@ -129,6 +130,7 @@ async def _(
     set_lora,
     target_prompt,
     target_ran,
+    RUNS_DIR,
 ):
     import activation_view
 
@@ -136,7 +138,7 @@ async def _(
     # and without its adapter, and guided decoding token by token. After a real training run it is captured again
     # from the new adapters.
     activation_error = None
-    _file = ROOT / "runs" / "activation" / "examples.json"
+    _file = RUNS_DIR / "activation" / "examples.json"
     if target_ran in ("standard", "protocol"):
         _defs = {
             "FAILURE_LABELS": FAILURE_LABELS, "GRADER_DIR": GRADER_DIR, "MODEL_FOLDERS": MODEL_FOLDERS, "TARGET_DIR": TARGET_DIR,
@@ -162,7 +164,7 @@ async def _(
 
 @app.cell
 def _(activation_error, activation_payload, activation_view, mo, space):
-    _views = [space(32, "step-model"), mo.md("## LFM3")]
+    _views = [space(32, "step-model")]
     if activation_error:
         _views.append(mo.callout(mo.md(f"Capture failed: `{activation_error}`"), kind="danger"))
     if activation_payload:
@@ -197,6 +199,7 @@ def _(mo):
         /* nothing here scrolls: the card is as tall as its code and its values */
         .liveedit-card { height: auto !important; overflow: visible; }
         .liveedit-code, .liveedit-trace, .liveedit-loopblock { max-height: none !important; overflow: visible !important; }
+        .liveedit-return { display: none !important; }
         @container (max-width: 560px) {
           .liveedit-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; }
           .liveedit-code { border-right: 0; border-bottom: 1px solid var(--liveedit-border); }
@@ -209,8 +212,8 @@ def _(mo):
     def fader(label, low, high, step, value, length=150, orientation="vertical"):
         return mo.ui.anywidget(Fader(min_value=low, max_value=high, step=step, value=value, label=label, length=length, orientation=orientation))
 
-    def knob(label, low, high, step, value):
-        return mo.ui.anywidget(Knob(min_value=low, max_value=high, step=step, value=value, label=label, size=72))
+    def knob(label, low, high, step, value, size=46):
+        return mo.ui.anywidget(Knob(min_value=low, max_value=high, step=step, value=value, label=label, size=size))
 
     def row(*cells, gap="28px 40px", align="flex-start"):
         """Columns that share a row while there is room and stack when there is not.
@@ -236,7 +239,7 @@ def _(mo):
 
 @app.cell
 def _(fader):
-    env_count_slider = fader("Environments", 2, 24, 1, 20, 260, "horizontal")
+    env_count_slider = fader("Environments", 2, 24, 1, 20, 200, "horizontal")
     return (env_count_slider,)
 
 
@@ -270,7 +273,8 @@ def _():
 @app.cell
 def _(build_environments, env_count_slider, ival, mo):
     environments = build_environments(ival(env_count_slider))
-    env_picker = mo.ui.dropdown(options={e["title"]: e["id"] for e in environments}, value=environments[0]["title"], label="Environment")
+    _short = lambda e: " · ".join(e["title"].split(" · ")[:2])  # id and language; the folders are in the tree
+    env_picker = mo.ui.dropdown(options={_short(e): e["id"] for e in environments}, value=_short(environments[0]), label="Environment")
     return env_picker, environments
 
 
@@ -289,9 +293,9 @@ def _(GENERATOR_SCOPE, LiveEdit, env_count_slider, env_picker, function_source, 
     mo.vstack(
         [
             space(56, "step-env"),
-            mo.md("## Target environment generation"),
-            mo.hstack([env_count_slider, env_picker], justify="start", align="end", gap=3, wrap=True),
-            row((mo.ui.anywidget(_code), 1, 620), (mo.plain_text(render_tree(list(shown_env["files"]))), 0, 190)),
+            mo.md("## Env"),
+            mo.hstack([env_count_slider, env_picker], justify="start", align="end", gap=2, wrap=False),
+            row((mo.ui.anywidget(_code), 1, 560), (mo.json(shown_env["layout"]), 0, 250), (mo.plain_text(render_tree(list(shown_env["files"]))), 0, 180), gap="20px 28px"),
         ],
         gap=1.5,
     )
@@ -318,11 +322,11 @@ def _():
 @app.cell
 def _(ALL_CATEGORIES, fader, mo):
     category_boxes = mo.ui.array([mo.ui.checkbox(value=True, label=name.replace("_", " ")) for name in ALL_CATEGORIES])
-    chains_total_slider = fader("Chains", 20, 400, 20, 400, 120)
-    ported_share_slider = fader("Unix-steered", 0.0, 0.3, 0.05, 0.25, 120)
-    length_bias_slider = fader("Longer chains", 0.0, 1.0, 0.1, 0.5, 120)
-    breaks_per_chain_slider = fader("Breaks / chain", 1, 10, 1, 4, 120)
-    k_variants_slider = fader("Requests / chain", 1, 6, 1, 3, 120)
+    chains_total_slider = fader("Chains", 20, 400, 20, 400, 84)
+    ported_share_slider = fader("Unix", 0.0, 0.3, 0.05, 0.25, 84)
+    length_bias_slider = fader("Longer", 0.0, 1.0, 0.1, 0.5, 84)
+    breaks_per_chain_slider = fader("Breaks", 1, 10, 1, 4, 84)
+    k_variants_slider = fader("Requests", 1, 6, 1, 3, 84)
     return breaks_per_chain_slider, category_boxes, chains_total_slider, k_variants_slider, length_bias_slider, ported_share_slider
 
 
@@ -432,20 +436,20 @@ def _(
     mo.vstack(
         [
             space(56, "step-data"),
+            mo.md("## Data gen & rephrase"),
             row(
                 (
                     mo.vstack(
                         [
-                            mo.md("## Data faders"),
-                            mo.hstack([chains_total_slider, ported_share_slider, length_bias_slider, breaks_per_chain_slider, k_variants_slider], justify="start", gap=0.5, wrap=False),
+                            mo.hstack([chains_total_slider, ported_share_slider, length_bias_slider, breaks_per_chain_slider, k_variants_slider], justify="start", gap=0.25, wrap=False),
                             mo.hstack(list(category_boxes), justify="start", gap=0.75, wrap=True),
                             request_btn,
                         ],
                         gap=1.5,
                     ),
-                    0, 470,
+                    0, 360,
                 ),
-                (mo.vstack([mo.md("## Chains"), chain_tabs, chain_table], gap=0.75), 1, 440),
+                (mo.vstack([chain_tabs, chain_table], gap=0.75), 1, 440),
             ),
             # the chain in focus, in full
             mo.md("\n".join(f"> {ask}" for ask in selected_chain["asks"][:1])),
@@ -507,8 +511,7 @@ def _(BREAK_SCOPE, LiveEdit, break_type_picker, breaks_per_chain_slider, build_s
     )
     mo.vstack(
         [
-            space(40),
-            mo.md("## Breaks, before & after"),
+            space(24),
             break_type_picker,
             mo.ui.anywidget(_live),
         ],
@@ -597,7 +600,7 @@ async def _(
         ([mo.callout(mo.md(f"Request writing failed: `{_error}`"), kind="danger")] if _error else [])
         + [
             space(40),
-            mo.md(f"## Final data size = {_kind['valid']:,} + {_kind['broken']:,} + {_kind['equivalent']:,} = {sum(_kind.values()):,}"),
+            mo.md(f"Final data size = {_kind['valid']:,} + {_kind['broken']:,} + {_kind['equivalent']:,} = **{sum(_kind.values()):,}**"),
         ]
     )
     return (dataset,)
@@ -646,11 +649,11 @@ def _(MODEL_FOLDERS, PLACEMENTS, TangleLatex, fader, knob, mo):
     # protocol: sweep over rank and learning rate, placement ablation, final adapter
     grader_preset = mo.ui.dropdown(options=["smoke", "standard", "protocol"], value="smoke", label="Budget")
     grader_placement = mo.ui.dropdown(options=list(PLACEMENTS), value="mlp_only", label="Layers")
-    grader_lr = fader("Learning rate ×1e-4", 0.5, 8.0, 0.5, 1.0)
-    grader_dropout = fader("LoRA dropout", 0.0, 0.2, 0.05, 0.05)
-    grader_clip = fader("Gradient clip", 0.5, 5.0, 0.5, 1.0)
+    grader_lr = fader("LR ×1e-4", 0.5, 8.0, 0.5, 1.0, 84)
+    grader_dropout = fader("Dropout", 0.0, 0.2, 0.05, 0.05, 84)
+    grader_clip = fader("Clip", 0.5, 5.0, 0.5, 1.0, 84)
     grader_rank = knob("Rank", 4, 32, 4, 8)
-    grader_alpha_mult = knob("Alpha ÷ rank", 1.0, 4.0, 0.5, 2.0)
+    grader_alpha_mult = knob("α ÷ rank", 1.0, 4.0, 0.5, 2.0)
     grader_batch = knob("Batch", 1, 8, 1, 4)
     grader_train_btn = mo.ui.run_button(label="▶")
     grader_tangle = mo.ui.anywidget(
@@ -801,10 +804,6 @@ def _(
                     "Loss": _loss,
                     "Sweep": mo.ui.table(pd.DataFrame([_row(r) for r in _e["sweep"]]), selection=None, pagination=False),
                     "LoRA layers": mo.ui.table(pd.DataFrame([_row(r) for r in _e["placement_ablation"]] + [_row(r) for r in _e["sweep"] if r["config"]["name"] == _e["sweep_best"]]), selection=None, pagination=False),
-                    "Guidance grid": mo.ui.table(
-                        pd.DataFrame([{"guidance": kind.replace("_", " "), "weight": w, "type accuracy": _pct(v["accuracy"]), "log p": round(v["logp"], 3)} for kind, grid in _e["guidance"].items() for w, v in grid.items()]),
-                        selection=None, pagination=False,
-                    ),
                 }
             )
         _cm = pd.DataFrame(_best["records"]).groupby(["true", "1.0"]).size().reset_index(name="rows").rename(columns={"1.0": "predicted"})
@@ -835,11 +834,11 @@ def _(
     mo.vstack(
         [
             space(56, "step-grader"),
-            mo.md("## Train D1"),
+            mo.md("## Train grader"),
             *_notes,
             mo.hstack(
-                [grader_lr, grader_dropout, grader_clip, grader_rank, grader_alpha_mult, grader_batch, mo.vstack([grader_train_btn, grader_placement, grader_preset], gap=0.75)],
-                justify="start", align="end", gap=1.5, wrap=True,
+                [grader_lr, grader_dropout, grader_clip, grader_rank, grader_alpha_mult, grader_batch, mo.vstack([grader_train_btn, grader_placement, grader_preset], gap=0.4)],
+                justify="start", align="end", gap=0.4, wrap=False,
             ),
             *([row(*[(chart, 1, 380) for chart in _charts])] if _charts else []),
         ],
@@ -895,10 +894,10 @@ def _(MODEL_FOLDERS, PLACEMENTS, TARGET_GUIDANCE_GRID, TangleLatex, fader, knob,
     # guidance comparison · protocol: sweep, placement ablation, then the full pipeline
     target_preset = mo.ui.dropdown(options=["smoke", "standard", "protocol"], value="smoke", label="Budget")
     target_placement = mo.ui.dropdown(options=list(PLACEMENTS), value="all_linear", label="Layers")
-    target_lr = fader("Learning rate ×1e-4", 0.5, 8.0, 0.5, 2.0)
-    target_floor = fader("Plausibility floor", 0.01, 0.5, 0.01, 0.1)
+    target_lr = fader("LR ×1e-4", 0.5, 8.0, 0.5, 2.0, 84)
+    target_floor = fader("Floor", 0.01, 0.5, 0.01, 0.1, 84)  # used by guided decoding during a protocol run; not on the page
     target_rank = knob("Rank", 4, 32, 4, 8)
-    target_alpha_mult = knob("Alpha ÷ rank", 1.0, 4.0, 0.5, 2.0)
+    target_alpha_mult = knob("α ÷ rank", 1.0, 4.0, 0.5, 2.0)
     target_batch = knob("Batch", 1, 8, 1, 4)
     target_train_btn = mo.ui.run_button(label="▶")
     target_tangle = mo.ui.anywidget(
@@ -1039,7 +1038,7 @@ def _(
                 }
             )
         # where the grader's confusion matrix sits in the D1 panel: what execution says about every decoder
-        _scores = pd.DataFrame([{"decoder": name, "share": v["correct"]} for name, v in _r["execution"].items()])
+        _scores = pd.DataFrame([{"decoder": {"base": "base model", "P_good": "with LoRA"}[name], "share": v["correct"]} for name, v in _r["execution"].items() if name in ("base", "P_good")])
         _bars = mo.ui.altair_chart(
             alt.Chart(_scores)
             .mark_bar()
@@ -1054,69 +1053,23 @@ def _(
                     subtitle=[
                         f"{_r['rows']['eval']} held-out requests"
                         + (f" · P_good on the other {_r['unused_held_out']['rows']}: {_r['unused_held_out']['correct']:.0%}" if _r.get("unused_held_out") else ""),
-                        f"P_bad: {_r['rows']['bad_own']} wrong P_good calls + {_r['rows']['bad_synthetic']} generated breaks",
                     ],
                     anchor="start",
                 ),
                 height=max(140, 22 * len(_scores)), width="container",
             )
         )
-        _charts = [_loss, mo.ui.tabs({"Execution": _bars, "Calls": mo.ui.table(pd.DataFrame(_r["samples"]), selection=None, page_size=4)})]
-        # Guidance, as pictures that follow the dragged weight and the floor fader.
-        _w, _f = float(target_tangle.widget.values["w"]), fval(target_floor)
-        _named = {"P_bad": "P_bad", "bad": "P_bad", "weak P_good": "weak P_good", "weak": "weak P_good", "base": "base"}
-        _visuals = []
-        _grid = _r.get("reference_logp") or {}
-        if _grid:
-            _lines = pd.DataFrame([{"away from": _named.get(other, other), "weight": float(k), "log p": v} for other, table in _grid.items() for k, v in table.items()])
-            _visuals.append(
-                (
-                    alt.Chart(_lines).mark_line(point=True).encode(
-                        x=alt.X("weight:Q", title="weight w"), y=alt.Y("log p:Q", title="log p of the reference call, per token"),
-                        color=alt.Color("away from:N", legend=alt.Legend(orient="bottom", title=None)),
-                    )
-                    + alt.Chart(pd.DataFrame({"weight": [_w]})).mark_rule(strokeDash=[4, 3]).encode(x="weight:Q")
-                ).properties(height=220, width="container")
-            )
-        if guidance_tokens and guidance_tokens.get("margin"):
-            _limit = math.log(1 / _f)
-            _leads = pd.DataFrame({"lead": [min(19.75, m) for m in guidance_tokens["margin"]]})
-            _leads["within reach"] = _leads["lead"] <= _limit
-            _visuals.append(
-                (
-                    alt.Chart(_leads).mark_bar().encode(
-                        x=alt.X("lead:Q", bin=alt.Bin(step=0.5), title="P_good's lead over its runner-up (nats)"), y=alt.Y("count():Q", title="tokens"),
-                        color=alt.Color("within reach:N", legend=None, scale=alt.Scale(domain=[False, True], range=["#2a78d6", "#eb6834"])),
-                    )
-                    + alt.Chart(pd.DataFrame({"lead": [_limit]})).mark_rule(strokeDash=[4, 3]).encode(x="lead:Q")
-                ).properties(height=220, width="container")
-            )
-            _key = f"{min((0.25, 0.5, 1.0), key=lambda k: abs(k - _w))}|{min((0.03, 0.1, 0.3), key=lambda k: abs(k - _f))}"
-            _moves = pd.DataFrame(
-                [
-                    {"away from": _named.get(other, other), "token moved": kind, "tokens": rec["flips"][_key][field]}
-                    for other, rec in guidance_tokens["against"].items()
-                    for kind, field in (("onto the reference", "onto_reference"), ("away from it", "away_from_reference"))
-                ]
-            )
-            _visuals.append(
-                alt.Chart(_moves).mark_bar().encode(
-                    y=alt.Y("away from:N", title=None), x=alt.X("tokens:Q", title=f"tokens guidance changes, of {guidance_tokens['tokens']:,}", axis=alt.Axis(tickMinStep=1)),
-                    color=alt.Color("token moved:N", legend=alt.Legend(orient="bottom", title=None), scale=alt.Scale(domain=["onto the reference", "away from it"], range=["#1baf7a", "#e34948"])),
-                ).properties(height=220, width="container")
-            )
-        _guidance = [space(24), mo.md("## Guidance"), target_tangle] + ([row(*[(chart, 1, 300) for chart in _visuals])] if _visuals else [])
+        _charts = [_loss, mo.ui.tabs({"Execution": _bars, "Calls": mo.ui.table(pd.DataFrame([{k: v for k, v in sample.items() if not k.startswith("guided")} for sample in _r["samples"]]), selection=None, page_size=4)})]
     mo.vstack(
         [
             space(56, "step-target"),
             mo.md("## Train LFM"),
             *_notes,
             mo.hstack(
-                [target_lr, target_floor, target_rank, target_alpha_mult, target_batch, mo.vstack([target_train_btn, target_placement, target_preset], gap=0.75)],
-                justify="start", align="end", gap=1.5, wrap=True,
+                [target_lr, target_rank, target_alpha_mult, target_batch, mo.vstack([target_train_btn, target_placement, target_preset], gap=0.4)],
+                justify="start", align="end", gap=0.4, wrap=False,
             ),
             *([row(*[(chart, 1, 380) for chart in _charts])] if _charts else []),
-            *_guidance,
         ],
         gap=1.5,
     )
@@ -1162,12 +1115,13 @@ async def _(
     target_ran,
     target_report,
     write_browser_requests,
+    SANDBOX,
 ):
     # After a real training run, P_good is added to the 4-bit ONNX build of the target as low-rank branches beside
     # each quantised weight, the exported graph generates on ONNX Runtime, and its calls are executed. The result is
     # written to webgpu-demo/export.json. `mise run experiments -- --only export` does the same from the command line.
     export_error = None
-    if target_ran in ("standard", "protocol") and target_report and (BASE_ONNX_DIR / "onnx" / "model_q4f16.onnx").exists():
+    if target_ran in ("standard", "protocol") and target_report and not SANDBOX and (BASE_ONNX_DIR / "onnx" / "model_q4f16.onnx").exists():
         _rows = sorted(dataset["target"]["dev"], key=lambda r: (r["id"].rsplit("/", 1)[1], r["id"]))[:24]
         _cfg = target_report["config"]
 

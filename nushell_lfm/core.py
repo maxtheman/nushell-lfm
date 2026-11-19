@@ -16,8 +16,11 @@ MODEL_FOLDERS = {
     "grader": "d1-2b-mlx-8bit",
     "target": "lfm3-1.7b-mlx-8bit",
 }
-RUNS_DIR = ROOT / "runs"
+# Datasets, adapters and reports go to ./runs. Set NUSHELL_LFM_RUNS to another folder to try things without
+# touching them (`mise run sandbox` does that with a copy); SANDBOX then also keeps the browser export as it is.
+RUNS_DIR = Path(os.environ.get("NUSHELL_LFM_RUNS", ROOT / "runs")).expanduser()
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
+SANDBOX = RUNS_DIR.resolve() != (ROOT / "runs").resolve()
 nu_path = shutil.which("nu")
 
 # The modules whose functions the notebook shows running line by line.

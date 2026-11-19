@@ -15,7 +15,7 @@ class StepBar(anywidget.AnyWidget):
         const style = document.createElement("style");
         style.className = "nb-steps-style";
         style.textContent = `
-          .nb-steps { position: fixed; z-index: 60; box-sizing: border-box; display: flex; gap: 6px; align-items: center; justify-content: flex-start; flex-wrap: wrap;
+          .nb-steps { position: fixed; z-index: 9; box-sizing: border-box; display: flex; gap: 6px; align-items: center; justify-content: flex-start; flex-wrap: wrap;
                       padding: 8px 4px; font: 14px/1.3 system-ui, sans-serif; color: CanvasText;
                       border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-bottom: 1px solid color-mix(in srgb, CanvasText 18%, transparent); }
           .nb-steps.stuck { padding: 8px 24px; backdrop-filter: blur(10px); background: color-mix(in srgb, Canvas 88%, transparent); border-top-color: transparent; }

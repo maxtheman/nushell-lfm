@@ -800,7 +800,7 @@ function render({ model, el }) {
         <div class="lfm3-layer"><input class="lfm3-slider" type="range" min="0" max="23" step="1" /><span class="lfm3-layer-badge"></span></div>
         <label class="lbl-d1"><input class="chk-d1" type="checkbox" /> <span>D1</span></label>
         <label class="lbl-lora"><input class="chk-lora" type="checkbox" /> <span>LoRA</span></label>
-        <label class="lbl-guide"><span>Guidance</span>
+        <label class="lbl-guide" style="display: none"><span>Guidance</span>
           <select class="sel-guide"><option value="off">off</option><option value="bad">away from P_bad</option><option value="weak">away from weak P_good</option><option value="base">away from the base model</option></select>
           <select class="sel-weight"><option value="0.25">w 0.25</option><option value="0.5">w 0.5</option><option value="1">w 1.0</option></select>
         </label>
@@ -848,7 +848,7 @@ function render({ model, el }) {
   const hasLora = (v) => !!(v && v.attn && v.attn.lora);
   const loraOn = (v) => !!model.get("show_lora") && hasLora(v);
   const guide = (ex) => {                                                // which guidance is drawn, if any
-    const g = model.get("guidance") || "off";
+    const g = "off";  // guided decoding is not shown on the page
     if (g === "off" || !ex) return null;
     if (isD1(ex)) return "base";                                         // the grader has one scheme on disk
     return ex.lfm3.guidance && ex.lfm3.guidance.against[g] ? g : null;
@@ -1272,8 +1272,9 @@ function render({ model, el }) {
       const ins = v.tokens.slice(0, v.n_in), outs = v.tokens.slice(v.n_in);
       if (d1) {
         const under = (sp, j) => { const p = answer ? Math.max(answer.start[j] || 0, answer.end[j] || 0) : 0; if (p > 0.02) sp.style.boxShadow = `inset 0 -2px 0 rgba(239,68,68,${Math.min(1, 0.25 + p).toFixed(2)})`; };
-        card.appendChild(row("", ins, 0, null, ex.request));
-        card.appendChild(row("", outs, v.n_in, under, ex.code));
+        const lead = (r, text) => { const s = document.createElement("span"); s.style.opacity = "0.55"; s.textContent = text; r.prepend(s); return r; };
+        card.appendChild(lead(row("", ins, 0, null, ex.request), "User request: "));
+        card.appendChild(lead(row("", outs, v.n_in, under, ex.code), "Assistant tool call:\n"));
         if (answer) { const out = document.createElement("div"); out.className = "lfm3-out"; out.textContent = `${answer.verdict === "broken" ? "broken" : "not broken"} · ${answer.failure_type} ${pct(answer.top3[0][1])}`; card.appendChild(out); }
       } else {
         card.appendChild(row("", ins, 0, null, ex.request));
