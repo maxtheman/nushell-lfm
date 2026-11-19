@@ -137,7 +137,7 @@ The comparison is on this dataset's own convention: one reference value per requ
 
 - `nu-wasm/` is a small Rust crate that links the Nushell crates of the same release as the native `nu` and adds `ls`, `glob`, `open`, `save`, `cd`, `path type` and friends over an in-memory workspace. The built module is in `public/nu-wasm/` (`mise run build-wasm` rebuilds it). `mise run check-wasm` runs every chain's reference call both ways: of 401, 382 print the same answer and 19 differ only in the order `glob` returns entries (directory order on disk, sorted in the browser). The demo page therefore gets its reference value by running the reference call in the same in-browser Nushell.
 - The export step adds the adapter to the 4-bit ONNX build of the model as low-rank branches beside each quantised weight, then generates with the exported graph on ONNX Runtime and executes the calls to confirm it still works.
-- **Load Nu** in the notebook opens `webgpu-demo/` in a new tab: the exported model on WebGPU (Transformers.js) and a Nushell session, on one page. `mise run demo` serves the same page without the notebook.
+- **Open demo** at the top of the notebook opens `webgpu-demo/` in a new tab: the exported model on WebGPU (Transformers.js) and a Nushell session, on one page. `mise run demo` serves the same page without the notebook.
 - `MODEL=owner/name mise run build-demo` collects the page into `dist/demo` as a static site that downloads the model from that repository on the Hugging Face Hub. `webgpu-demo/config.json` (or `?model=`) says where the model is.
 
 ## Limits to keep in mind

@@ -40,7 +40,7 @@ def _():
 
 
 @app.cell
-def _(MODELS_DIR, MODEL_FOLDERS, ROOT, mo, nu_path, row):
+def _(DEMO_PORT, MODELS_DIR, MODEL_FOLDERS, ROOT, demo_notes, mo, nu_path, row):
     _ready = [("Nushell", bool(nu_path)), ("LFM3 checkpoint", (MODELS_DIR / MODEL_FOLDERS["target"] / "config.json").exists())]
     _missing = [name for name, ok in _ready if not ok]
     _gif = ROOT / "assets" / "usage.gif"
@@ -59,8 +59,15 @@ def _(MODELS_DIR, MODEL_FOLDERS, ROOT, mo, nu_path, row):
         if _gif.exists()
         else mo.Html('<div style="aspect-ratio: 16/10; border: 1px dashed currentColor; border-radius: 10px; display: grid; place-items: center; opacity: 0.5;">GIF of usage</div>')
     )
+    # opens the finished model on WebGPU and a Nushell session over a held-out environment, in a new tab
+    _demo = mo.Html(
+        f'''<div><a href="http://localhost:{DEMO_PORT}/?load=1" target="_blank" rel="noopener"
+              style="display: inline-block; padding: 6px 14px; font: 600 0.9rem/1.2 system-ui, sans-serif; text-decoration: none; color: inherit;
+                     border: 1.5px solid currentColor; border-radius: 8px;">Open demo ↗</a></div>'''
+    )
     mo.vstack(
-        [row((_intro, 3, 360), (_side, 2, 300))]
+        [row((mo.vstack([_intro, _demo], gap=0.75), 3, 360), (_side, 2, 300))]
+        + ([mo.callout(mo.md(" ".join(demo_notes)), kind="warn")] if demo_notes else [])
         + ([mo.callout(mo.md("Missing: " + ", ".join(_missing) + ". Run `mise run setup` and see the README for the checkpoints."), kind="warn")] if _missing else [])
     )
     return
@@ -78,8 +85,7 @@ def _(mo):
                 ["step-env", "1. Env"],
                 ["step-data", "2. Data gen & rephrase"],
                 ["step-target", "3. Train LFM"],
-                ["step-nu", "4. Load Nu"],
-                ["step-providers", "5. Other models"],
+                ["step-providers", "4. Other models"],
             ]
         )
     )
@@ -633,7 +639,7 @@ async def _(
 @app.cell
 def _(BROWSER_DIR, ROOT):
     # The demo page and the WebAssembly build of Nushell are static files, served from inside the notebook so
-    # that "Load Nu" needs no other process.
+    # that "Open demo" needs no other process.
     import http.server
     import socket
     import threading
@@ -678,35 +684,20 @@ def _(BROWSER_DIR, ROOT):
 
 
 @app.cell
-def _(BASE_ONNX_DIR, BROWSER_DIR, DEMO_PORT, EXPORT_ONNX_DIR, demo_serving, export_error, mo, space):
-    # Opens the finished model on WebGPU and a Nushell session over a held-out environment, full window, in a new tab.
-    _notes = []
+def _(BASE_ONNX_DIR, BROWSER_DIR, DEMO_PORT, EXPORT_ONNX_DIR, demo_serving, export_error):
+    # What would stop the demo from working; shown under the Open demo button at the top.
+    demo_notes = []
     if export_error:
-        _notes.append(f"Export failed: `{export_error}`")
+        demo_notes.append(f"Export failed: `{export_error}`")
     if not (BASE_ONNX_DIR / "onnx" / "model_q4f16.onnx").exists():
-        _notes.append("The ONNX build of the base model is missing: run `mise run fetch-onnx`.")
+        demo_notes.append("The ONNX build of the base model is missing: run `mise run fetch-onnx`.")
     elif not ((EXPORT_ONNX_DIR / "onnx" / "model_q4f16.onnx").exists() and (BROWSER_DIR / "environments.json").exists()):
-        _notes.append("No exported model yet: train the target at the standard or protocol budget.")
+        demo_notes.append("No exported model yet: train at the standard or protocol budget.")
     if not (BROWSER_DIR / "node_modules" / "@huggingface" / "transformers").exists():
-        _notes.append("Transformers.js is not installed: run `mise run setup`.")
+        demo_notes.append("Transformers.js is not installed: run `mise run setup`.")
     if not demo_serving:
-        _notes.append(f"Port {DEMO_PORT} is taken by something else, so the demo cannot be served from here.")
-    mo.vstack(
-        [
-            space(56, "step-nu"),
-            mo.Html(
-                f"""
-                <a href="http://localhost:{DEMO_PORT}/?load=1" target="_blank" rel="noopener"
-                   style="display:block; text-align:center; padding: clamp(18px, 4vw, 34px) 16px; margin: 0 0 56px; font: 700 clamp(1.5rem, 5vw, 2.4rem)/1.1 system-ui, sans-serif; text-decoration:none; color:inherit;
-                          border: 3px solid currentColor; border-radius: 14px; background: color-mix(in srgb, currentColor 6%, transparent);">
-                  Load Nu!
-                </a>
-                """
-            ),
-        ]
-        + ([mo.callout(mo.md(" ".join(_notes)), kind="warn")] if _notes else [])
-    )
-    return
+        demo_notes.append(f"Port {DEMO_PORT} is taken by something else, so the demo cannot be served from here.")
+    return (demo_notes,)
 
 
 @app.cell
