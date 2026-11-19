@@ -4,6 +4,14 @@ One [marimo](https://marimo.io) notebook that generates a Nushell tool-call data
 
 On 231 requests from four generated projects the model never saw, the fine-tuned model is correct on **214 (92.6%)**; the base model is correct on 8% of the 40 it was run on. The finished model also runs in the browser on WebGPU, next to Nushell compiled to WebAssembly.
 
+![The demo: requests answered with a Nushell call that is run in the page](assets/usage.gif)
+
+The demo in the browser: the model writes the call, Nushell in WebAssembly runs it, and the value is compared with the reference.
+
+![The 3D view over one request, base model and then with the LoRA](assets/model.gif)
+
+The same request inside the model, layer by layer: first the base model, which writes `open etc/app.toml` and stops, then the model with its LoRA, which writes `open etc/app.toml | get service.debug`. With the LoRA on, the colours show what it changes: the residual stream per layer and token, and the attention weights.
+
 The page is `notebook.py`; the pipeline it drives is the `nushell_lfm` package, and the scripts under `scripts/` call the same functions from the command line.
 
 ## Setup
