@@ -113,6 +113,8 @@ Nothing in the training data is written by hand. Each stage is seeded and can be
 
 Default settings: 20 generated environments, 401 verified chains, 3 requests each (972 training rows, 231 held-out rows); 4 environments held out whole. Dataset `a23bbb10902d`. Every number is for the held-out environments. `notes/results-tables.md` has these tables with their counts.
 
+**It also works at 2 bits.** With the base weights stored at 2.25 bits each (412 MB for the 24 blocks, down from 8 bits), retrained block by block and then distilled against the full model, it is correct on 190 of the same 231 requests: 82.3%, against 92.6%. Requantising to 2 bits without retraining gives 0%. The code is `experiments/lowbit.py`.
+
 | LFM3 1.7B | Requests | Well-formed | Runs | Returns the reference value |
 |---|---|---|---|---|
 | Base model | 40 | 78% | 48% | 8% |

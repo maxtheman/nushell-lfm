@@ -2,6 +2,8 @@
 
 Dataset `a23bbb10902d`: 20 generated environments, 401 verified chains, 3 requests each. 972 training rows, 231 held-out rows from 4 environments held out whole. A call is correct only if executing it returns the reference value. Numbers are read from `runs/target/report.json`, `runs/target/experiments.json`, `runs/providers/*.json` and `webgpu-demo/export.json`.
 
+**It also works at 2 bits.** With the base weights stored at 2.25 bits each (412 MB for the 24 blocks, down from 8 bits), retrained block by block and then distilled against the full model, it is correct on 190 of the same 231 requests: 82.3%, against 92.6%. Requantising to 2 bits without retraining gives 0%. The code is `experiments/lowbit.py`; table 7 has the other bit widths.
+
 ## 1. The model
 
 | LFM3 1.7B | Requests | Well-formed | Runs | Correct | Count |

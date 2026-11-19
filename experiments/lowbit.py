@@ -444,6 +444,8 @@ def run(bits: int, *, group: int = 128, chunk: int = 4, block_steps: int = 300, 
     out["history"] = distil(defs, teacher, student, tokenizer, fit_rows, epochs, cfg["batch"], distil_lr, log, name)
     out["stages"]["after distilling"] = agreement(defs, teacher, student, tokenizer, quick_rows)
     log(f"[low-bit {name}] after distilling: {out['stages']['after distilling']}")
+    # the finished model's blocks (low-bit weights, their scales and offsets, and the distilled LoRA)
+    mx.save_safetensors(str(target_dir / f"low_bit_{bits}_final.safetensors"), {k: v for k, v in tree_flatten(student.parameters()) if ".layers." in k})
 
     n_weights = sum(v.size * 32 // bits for k, v in tree_flatten(student.parameters()) if k.endswith(".inner.weight"))
     stored = sum(v.nbytes if k.endswith(".weight") else v.size * 2 for k, v in tree_flatten(student.parameters()) if ".inner." in k and k.rsplit(".", 1)[-1] in ("weight", "scales", "biases"))
