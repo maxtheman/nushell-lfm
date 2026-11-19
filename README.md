@@ -7,7 +7,7 @@ One [marimo](https://marimo.io) notebook that generates a Nushell tool-call data
 
 The finished target also runs in the browser on WebGPU, next to Nushell compiled to WebAssembly.
 
-Everything is in `notebook.py`. The scripts under `scripts/` call the same functions from the command line.
+The page is `notebook.py`; the pipeline it drives is the `nushell_lfm` package, and the scripts under `scripts/` call the same functions from the command line.
 
 ## Setup
 
@@ -166,13 +166,25 @@ Sweep and placement ablation (200 rows, one epoch, 24 held-out requests; one req
 ## Layout
 
 ```
-notebook.py            the whole pipeline and its interface
-activation_view.py     what both models do on held-out examples (attention, residual stream, guidance token by token) and the 3D view of it
+notebook.py            the page: controls, layout and charts; it calls the package below
+nushell_lfm/           the pipeline as a library
+  environments.py        generated projects and the sandboxed Nushell runner
+  catalog.py             Nushell's built-in commands with their types
+  chains.py              command chains, sampled and verified by running them
+  breaks.py              the ten failure types
+  dataset.py             requests, splits, the dataset on disk
+  grader.py              D1 LoRA, readouts, the grader's experiments
+  target.py              LFM3 LoRA, guided decoding, the target's experiments
+  export.py              ONNX export for the browser
+  model_view.py          what both models do on held-out examples, and the 3D view of it
+  widgets/               notebook widgets: StepBar, NuRepl, ModelView
+lowbit.py              2-bit and 1-bit versions of the target, retrained and distilled
 scripts/               command-line entry points and the data fetchers
 nu-wasm/               Nushell for WebAssembly (Rust)
 public/nu-wasm/        the built module
 webgpu-demo/           the browser page (model on WebGPU + Nushell session)
 assets/, data/         Nu's command list, usage data, Unix-to-Nushell map, Nushell-native prior
+notes/                 lab notes and their charts
 runs/                  generated datasets, adapters and reports (not committed)
 ```
 

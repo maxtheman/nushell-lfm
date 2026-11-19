@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import tempfile
 
-from .core import RUNS_DIR
+from .core import RUNS_DIR, nu_path
 
 from dataclasses import asdict, dataclass
 
