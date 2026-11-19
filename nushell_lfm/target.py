@@ -1,16 +1,15 @@
-"""The target: a LoRA on LFM3 that writes the call, guided decoding, and the experiments around it."""
+"""The target: a LoRA on LFM3 1.7B that writes one run_nushell call for a request, scored by executing the call."""
 
-from collections import Counter
 import gc
 import json
 import math
 import random
 import time
 
-from .core import RUNS_DIR
-from .breaks import parse_tool_call
+from .calls import parse_tool_call
+from .core import MODELS_DIR, RUNS_DIR, model_path
 from .environments import run_nu, same_output
-from .grader import GRADER_DIR, attach_lora, grade_calls, learning_rate, set_lora
+from .lora import attach_lora, learning_rate
 
 TARGET_DIR = RUNS_DIR / "target"
 TARGET_SYSTEM = (
@@ -65,51 +64,24 @@ def _completion_loss(lm, inputs, expected, start):
 def _mean_loss(lm, tokenizer, rows) -> float | None:
     return sum(float(_completion_loss(lm, *_encode(tokenizer, r)).item()) for r in rows) / len(rows) if rows else None
 
-def _ternarize(lm, group_size: int = 64) -> None:
-    """Replace every linear weight by its ternary version: within each group of `group_size` weights in a row,
-    each weight becomes −s, 0 or +s. Weights smaller than 0.7 × the group's mean size go to 0 and s is the mean
-    size of the rest (ternary weight networks). The values are kept as ordinary floats, so this measures what
-    ternary weights do to the answers; it does not shrink the model in memory. The embedding goes to 4 bits."""
-    import mlx.core as mx
-    import mlx.nn as nn
-
-    def ternary(w):
-        out_dim, in_dim = w.shape
-        groups = w.astype(mx.float32).reshape(out_dim, in_dim // group_size, group_size)
-        size = mx.abs(groups)
-        keep = size > 0.7 * size.mean(axis=-1, keepdims=True)
-        scale = (size * keep).sum(axis=-1, keepdims=True) / mx.maximum(keep.sum(axis=-1, keepdims=True), 1)
-        return (mx.sign(groups) * keep * scale).reshape(out_dim, in_dim).astype(w.dtype)
-
-    for _, module in lm.named_modules():
-        if isinstance(module, nn.Linear) and module.weight.shape[1] % group_size == 0:
-            module.weight = ternary(module.weight)
-            mx.eval(module.weight)
-    nn.quantize(lm, group_size=group_size, bits=4, class_predicate=lambda _, m: isinstance(m, nn.Embedding))
-
-def _load(cfg: dict, seed: int):
+def _load(cfg: dict, seed: int, prepare=None):
+    """The checkpoint with a fresh LoRA attached. `prepare(model)` runs before the LoRA goes on (the low-bit
+    experiments use it to requantise the base weights)."""
     import mlx.core as mx
     from mlx_vlm import load as vlm_load
 
     mx.set_cache_limit(512 * 1024**2)
     mx.random.seed(seed)
-    model, processor = vlm_load(cfg["model_path"])
-    if cfg.get("bits"):  # the same weights stored with fewer bits: back to full precision, then quantised again
-        import mlx.nn as nn
-        from mlx_lm.utils import dequantize_model
-
-        dequantize_model(model.language_model)
-        if cfg["bits"] == "ternary":
-            _ternarize(model.language_model, cfg.get("group_size", 64))
-        else:
-            nn.quantize(model.language_model, group_size=cfg.get("group_size", 64), bits=cfg["bits"])
-        mx.eval(model.language_model.parameters())
+    model, processor = vlm_load(model_path(cfg["model_path"]))  # a folder under $MODELS_DIR, or a path
+    if prepare:
+        prepare(model)
     lm, layers, n_params = attach_lora(model, cfg["rank"], cfg["alpha"], 0.0, cfg.get("placement", "all_linear"))
     return model, getattr(processor, "tokenizer", processor), lm, layers, n_params
 
 def _fit(lm, tokenizer, rows: list[dict], cfg: dict, name: str, log, snapshots: dict | None = None, stop_at_weak: bool = False) -> list[dict]:
     """One LoRA on `rows`: per-example gradients averaged over a batch, clipped, AdamW with warm-up and cosine
-    decay. With `snapshots`, the adapter as it stood a quarter of the way through is kept under "weak"."""
+    decay. With `snapshots`, the adapter as it stood a quarter of the way through is kept under "weak"
+    (the guidance experiments steer away from it)."""
     import mlx.core as mx
     import mlx.nn as nn
     import mlx.optimizers as optim
@@ -144,53 +116,22 @@ def _fit(lm, tokenizer, rows: list[dict], cfg: dict, name: str, log, snapshots: 
                     return history
     return history
 
-def _generate(lm, tokenizer, row: dict, max_new: int, good=None, bad=None, weight: float = 0.0, floor: float = 0.1, bad_row: dict | None = None, blank_weight: float = 0.0) -> str:
-    """Greedy decoding of one tool call. With `good` and `bad` adapter weights it is guided: each step runs
-    both adapters, each with its own KV cache, and scores a token by
-    log p_good + weight · (log p_good − log p_bad), over the tokens P_good itself finds plausible
-    (probability at least `floor` × its top token). That restriction stops the difference from promoting
-    tokens that are merely unlikely under P_bad.
-
-    With `bad_row` the contrast reads a different prompt (for example the same row with the request blanked);
-    without `bad` it then uses the same adapter, so the difference is what the request itself contributes.
-    `blank_weight` adds that request contrast on top of an adapter contrast, so both steer at once."""
+def generate(lm, tokenizer, row: dict, max_new: int) -> str:
+    """Greedy decoding of one tool call, stopping at the end of the call."""
     import mlx.core as mx
-    import mlx.nn as nn
-    from mlx.utils import tree_unflatten
-
-    def use(weights):
-        lm.update(tree_unflatten(list(weights.items())))
-
-    def step(tokens, cache):
-        out = lm(tokens, cache=cache)
-        return nn.log_softmax((out.logits if hasattr(out, "logits") else out)[:, -1, :].astype(mx.float32), axis=-1)
 
     stop = {tokenizer.eos_token_id, tokenizer.convert_tokens_to_ids("<|im_end|>")}
     tokens = mx.array([tokenizer.encode(target_prompt(tokenizer, row), add_special_tokens=False)])
-    other_tokens = tokens if bad_row is None else mx.array([tokenizer.encode(target_prompt(tokenizer, bad_row), add_special_tokens=False)])
-    blank_tokens = mx.array([tokenizer.encode(target_prompt(tokenizer, {**row, "speech": ""}), add_special_tokens=False)]) if blank_weight else None
-    cache_good, cache_bad, cache_blank, written = lm.make_cache(), lm.make_cache(), lm.make_cache(), []
+    cache, written = lm.make_cache(), []
     for _ in range(max_new):
-        if good is not None:
-            use(good)
-        scores = step(tokens, cache_good)
-        blank = step(blank_tokens, cache_blank) if blank_weight else None
-        if bad is not None or bad_row is not None or blank_weight:
-            contrast = scores
-            if bad is not None or bad_row is not None:
-                if bad is not None:
-                    use(bad)
-                contrast = step(other_tokens, cache_bad)
-            keep = scores >= mx.max(scores, axis=-1, keepdims=True) + math.log(floor)
-            guided = scores + weight * (scores - contrast) + (blank_weight * (scores - blank) if blank_weight else 0.0)
-            scores = mx.where(keep, guided, mx.array(-1e9, dtype=mx.float32))
-        token = int(mx.argmax(scores, axis=-1).item())
+        out = lm(tokens, cache=cache)
+        token = int(mx.argmax((out.logits if hasattr(out, "logits") else out)[:, -1, :], axis=-1).item())
         if token in stop:
             break
         written.append(token)
         if tokenizer.decode(written).rstrip().endswith("</tool_call>"):
             break
-        tokens = other_tokens = blank_tokens = mx.array([[token]])
+        tokens = mx.array([[token]])
     return tokenizer.decode(written)
 
 def score_call(text: str, row: dict) -> dict:
@@ -204,7 +145,36 @@ def score_call(text: str, row: dict) -> dict:
 def _rate(scores: list[dict], key: str = "correct"):
     return sum(s[key] for s in scores) / len(scores) if scores else None
 
-TARGET_GUIDANCE_GRID = [0.0, 0.25, 0.5, 1.0, 1.5, 2.0]
+def _portable(cfg: dict) -> dict:
+    """The settings as they are saved: a checkpoint under $MODELS_DIR by its folder name, and no output folder."""
+    out = {k: v for k, v in cfg.items() if k != "out_dir"}
+    path = type(MODELS_DIR)(str(out["model_path"]))
+    if path.is_absolute() and path.parent == MODELS_DIR:
+        out["model_path"] = path.name
+    return out
+
+def spread(rows: list[dict]) -> list[dict]:
+    """Held-out requests in a fixed order that takes one request per chain first."""
+    return sorted(rows, key=lambda r: (r["id"].rsplit("/", 1)[1], r["id"]))
+
+def fit_rows_of(train: list[dict], cfg: dict) -> list[dict]:
+    """The training rows the adapter is fitted on. `probe_share` of the training chains are kept out: the
+    saved adapter was trained that way (the guidance experiments read its mistakes on them), so the same
+    split reproduces it. Set it to 0 to fit on everything."""
+    chains = sorted({r["chain_id"] for r in train})
+    random.Random(cfg["seed"]).shuffle(chains)
+    kept_out = set(chains[: max(1, round(len(chains) * cfg["probe_share"]))]) if cfg.get("probe_share") else set()
+    return [r for r in train if r["chain_id"] not in kept_out][: cfg["n_good"]]
+
+def _summary(rows: list[dict], scores: list[dict]) -> dict:
+    by_env = {}
+    for row, sc in zip(rows, scores):
+        by_env.setdefault(row["env"], []).append(sc["correct"])
+    return {
+        "rows": len(rows), "well_formed": _rate(scores, "well_formed"), "runs": _rate(scores, "runs"), "correct": _rate(scores),
+        "by_environment": {env: {"rows": len(v), "correct": sum(v) / len(v)} for env, v in sorted(by_env.items())},
+        "wrong": [{"request": r["speech"], "reference": parse_tool_call(r["completion"]), "got": sc["code"]} for r, sc in zip(rows, scores) if not sc["correct"]],
+    }
 
 def quick_target_run(cfg: dict, dataset: dict, log=print) -> dict:
     """Train one P_good configuration and measure it: loss on held-out reference calls, and the share of
@@ -214,19 +184,18 @@ def quick_target_run(cfg: dict, dataset: dict, log=print) -> dict:
 
     started = time.monotonic()
     train, dev = dataset["target"]["train"], dataset["target"]["dev"]
-    spread = lambda rows: sorted(rows, key=lambda r: (r["id"].rsplit("/", 1)[1], r["id"]))
     fit_rows, eval_rows = train[: cfg["n_good"]], spread(dev)[: cfg["n_eval"]]
     model, tokenizer, lm, layers, n_params = _load(cfg, cfg["seed"])
     try:
         history = _fit(lm, tokenizer, fit_rows, cfg, cfg["name"], log)
         loss = _mean_loss(lm, tokenizer, eval_rows[: cfg["n_loss"]])
-        scores = [score_call(_generate(lm, tokenizer, r, cfg["max_new"]), r) for r in eval_rows]
+        scores = [score_call(generate(lm, tokenizer, r, cfg["max_new"]), r) for r in eval_rows]
     finally:
         del model, lm, layers
         gc.collect()
         mx.clear_cache()
     result = {
-        "config": {k: v for k, v in cfg.items() if k not in ("guidance",)}, "trainable_parameters": n_params, "fit_rows": len(fit_rows),
+        "config": _portable(cfg), "trainable_parameters": n_params, "fit_rows": len(fit_rows),
         "dev_loss": loss, "well_formed": _rate(scores, "well_formed"), "runs": _rate(scores, "runs"), "correct": _rate(scores),
         "final_train_loss": history[-1]["loss"], "seconds": round(time.monotonic() - started, 1),
     }
@@ -238,8 +207,7 @@ def run_target_experiments(base: dict, dataset: dict, sizes: dict, log=print) ->
     breaks ties):
     1. a sweep over learning rate and rank with the adapter on every linear layer;
     2. an ablation of where the adapter goes (attention, MLP or convolution layers only) at the best setting;
-    3. the full pipeline at the chosen setting: P_good on the full budget, the probe, P_bad, and the
-       guidance comparison (against P_bad, against a weaker P_good, against the base model).
+    3. the final adapter at the chosen setting, on the full training budget, scored on every held-out request.
     Everything is written to `runs/target/experiments.json`."""
     TARGET_DIR.mkdir(parents=True, exist_ok=True)
     quick = {**base, "n_good": sizes["n_sweep"], "n_eval": sizes["n_sweep_eval"], "n_loss": sizes["n_sweep_eval"], "epochs": 1, "placement": "all_linear"}
@@ -260,170 +228,63 @@ def run_target_experiments(base: dict, dataset: dict, sizes: dict, log=print) ->
     experiments = {
         "created": time.time(), "dataset": dataset["fingerprint"], "sizes": sizes, "sweep": sweep, "sweep_best": best["name"],
         "placement_ablation": ablation, "chosen": chosen["name"],
-        "final": {k: final[k] for k in ("config", "rows", "loss", "execution", "reference_logp", "probe", "seconds", "trainable_parameters")},
+        "final": {k: final[k] for k in ("config", "rows", "loss", "execution", "unused_held_out", "seconds", "trainable_parameters")},
     }
     (TARGET_DIR / "experiments.json").write_text(json.dumps(experiments, indent=1), encoding="utf-8")
     return experiments
 
 def run_target_pipeline(cfg: dict, dataset: dict, log=print) -> dict:
-    """The whole of step 7. Training chains are divided into fit chains and probe chains; the dev chains are
-    used only for the final scores.
+    """Train the adapter and score it by execution on held-out environments.
 
-    1. Generate with the base model on dev requests, train P_good on the fit chains, then generate with
-       P_good on dev requests and on probe requests.
-    2. Execute everything. Execution decides what is wrong.
-    3. Ask the grader what kind of wrong each failed probe call is. It is never asked whether a call is
-       wrong: execution has already answered that.
-    4. Train P_bad on the probe outputs that failed plus synthetic breaks of the failure types the grader
-       found most often in them.
-    5. Decode dev requests guided by P_good against P_bad and execute the results."""
+    1. The base model writes the calls for the first `n_eval` held-out requests.
+    2. The adapter is fitted on the training rows and saved.
+    3. The adapter writes the calls for every held-out request: the first `n_eval` are compared with the
+       base model, and the rest (requests used for nothing else) are reported as `unused_held_out`.
+    Everything is executed; a call is correct only if it returns the reference value. The report goes to
+    `runs/target/report.json` (or `cfg["out_dir"]`)."""
     import mlx.core as mx
-    out_dir = type(TARGET_DIR)(cfg.get("out_dir") or TARGET_DIR)  # the smoke test writes somewhere else
-    import mlx.nn as nn
-    from mlx.utils import tree_flatten, tree_unflatten
+    from mlx.utils import tree_flatten
 
+    out_dir = type(TARGET_DIR)(cfg.get("out_dir") or TARGET_DIR)  # the smoke test writes somewhere else
     out_dir.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
-    rng = random.Random(cfg["seed"])
-    train, dev = dataset["target"]["train"], dataset["target"]["dev"]
-    chains = sorted({r["chain_id"] for r in train})
-    rng.shuffle(chains)
-    probe_chains = set(chains[: max(1, round(len(chains) * cfg["probe_share"]))])
-    spread = lambda rows: sorted(rows, key=lambda r: (r["id"].rsplit("/", 1)[1], r["id"]))  # one request per chain first
-    fit_rows = [r for r in train if r["chain_id"] not in probe_chains][: cfg["n_good"]]
-    probe_rows = spread([r for r in train if r["chain_id"] in probe_chains])[: cfg["n_probe"]]
-    eval_rows = spread(dev)[: cfg["n_eval"]]
+    train, dev = dataset["target"]["train"], spread(dataset["target"]["dev"])
+    fit_rows = fit_rows_of(train, cfg)
+    eval_rows, rest_rows = dev[: cfg["n_eval"]], dev[cfg["n_eval"]:] if cfg.get("score_all", True) else []
     loss_rows = eval_rows[: cfg["n_loss"]]
 
-    # 1. base outputs, P_good, P_good outputs
     model, tokenizer, lm, layers, n_params = _load(cfg, cfg["seed"])
     try:
         loss_before = _mean_loss(lm, tokenizer, loss_rows)  # LoRA starts as the identity, so this is the base model
-        log(f"[target] base model: generating {len(eval_rows)} dev calls")
-        base_out = [_generate(lm, tokenizer, r, cfg["max_new"]) for r in eval_rows]
+        log(f"[target] base model: generating {len(eval_rows)} held-out calls")
+        base_out = [generate(lm, tokenizer, r, cfg["max_new"]) for r in eval_rows]
         snapshots = {}
         history = _fit(lm, tokenizer, fit_rows, cfg, "P_good", log, snapshots)
         loss_good = _mean_loss(lm, tokenizer, loss_rows)
-        log(f"[target] P_good: generating {len(eval_rows)} dev and {len(probe_rows)} probe calls")
-        good_out = [_generate(lm, tokenizer, r, cfg["max_new"]) for r in eval_rows]
-        probe_out = [_generate(lm, tokenizer, r, cfg["max_new"]) for r in probe_rows]
         mx.save_safetensors(str(out_dir / "adapter_good.safetensors"), dict(tree_flatten(lm.trainable_parameters())))
-        if snapshots.get("weak"):  # kept so the 3D view can show autoguidance token by token
+        if snapshots.get("weak"):
             mx.save_safetensors(str(out_dir / "adapter_weak.safetensors"), snapshots["weak"])
+        log(f"[target] with the adapter: generating {len(eval_rows) + len(rest_rows)} held-out calls")
+        good_out = [generate(lm, tokenizer, r, cfg["max_new"]) for r in eval_rows + rest_rows]
     finally:
         del model, lm, layers
         gc.collect()
         mx.clear_cache()
 
-    # 2. execution
     base_scores = [score_call(t, r) for t, r in zip(base_out, eval_rows)]
-    good_scores = [score_call(t, r) for t, r in zip(good_out, eval_rows)]
-    probe_scores = [score_call(t, r) for t, r in zip(probe_out, probe_rows)]
-
-    # 3. execution has said which probe calls are wrong; the grader says what kind of wrong each one is
-    wrong = [(r, t) for r, t, sc in zip(probe_rows, probe_out, probe_scores) if not sc["correct"]]
-    failure_types, weak_types = None, []
-    if wrong and (GRADER_DIR / "adapter.safetensors").exists():
-        log(f"[target] {len(wrong)} of {len(probe_rows)} probe calls are wrong by execution; asking the grader what kind")
-        grades = grade_calls([{"prompt": r["speech"], "completion": t.strip()} for r, t in wrong], cfg["grader_model_path"])
-        failure_types = Counter(g["type_if_broken"] for g in grades)
-        weak_types = [name for name, _ in failure_types.most_common(3)]
-    elif wrong:
-        log("[target] no trained grader found: P_bad will use every failure type")
-
-    # 4. P_bad data: the target's own failures, topped up with synthetic breaks of its weak types
-    own = [
-        {**r, "completion": t.strip(), "source": "target output"}
-        for r, t, s in zip(probe_rows, probe_out, probe_scores)
-        if not s["correct"] and t.strip().endswith("</tool_call>")
-    ]
-    pool = [g for g in dataset["grader"]["train"] if g["is_broken"] and (not weak_types or g["failure_type"] in weak_types)]
-    rng.shuffle(pool)
-    setting = {r["chain_id"]: r for r in train + dev}  # a chain's files, context and references
-    synthetic = [
-        {**setting[g["chain_id"]], "id": g["id"], "speech": g["prompt"], "completion": g["completion"], "source": g["failure_type"]}
-        for g in pool[: max(0, cfg["n_bad"] - len(own))]
-    ]
-    bad_rows = own + synthetic
-    held_out_bad = [
-        {**setting[g["chain_id"]], "id": g["id"], "speech": g["prompt"], "completion": g["completion"]}
-        for g in dataset["grader"]["dev"]
-        if g["is_broken"] and (not weak_types or g["failure_type"] in weak_types)
-    ][: cfg["n_loss"]]
-
-    # 5. P_bad, then guided decoding
-    model, tokenizer, lm, layers, _ = _load(cfg, cfg["seed"] + 64)
-    try:
-        bad_before = _mean_loss(lm, tokenizer, held_out_bad)
-        history += _fit(lm, tokenizer, bad_rows, cfg, "P_bad", log)
-        bad_after = _mean_loss(lm, tokenizer, held_out_bad)
-        bad_on_good = _mean_loss(lm, tokenizer, loss_rows)
-        bad_weights = dict(tree_flatten(lm.trainable_parameters()))
-        mx.save_safetensors(str(out_dir / "adapter_bad.safetensors"), bad_weights)
-        good_weights = mx.load(str(out_dir / "adapter_good.safetensors"))
-        # three things P_good can be steered away from: the adapter trained on mistakes, its own weaker
-        # self (autoguidance), and the base model
-        against = {
-            "P_bad": bad_weights,
-            "weak P_good": snapshots.get("weak"),
-            "base": {k: (mx.zeros_like(v) if k.endswith("lora_b") else v) for k, v in good_weights.items()},
-        }
-        guided = {}
-        for other, weight, floor in cfg["guidance"]:  # decoding only, no retraining
-            if against.get(other) is None:
-                continue
-            name = f"vs {other} w={weight} floor={floor}"
-            log(f"[target] guided decoding {name}: {len(eval_rows)} dev calls")
-            outs = [_generate(lm, tokenizer, r, cfg["max_new"], good_weights, against[other], weight, floor) for r in eval_rows]
-            guided[name] = {"outputs": outs, "scores": [score_call(t, r) for t, r in zip(outs, eval_rows)]}
-        # the same comparison without sampling: how probable the reference call is under each guided
-        # distribution, log p = log p_good + w · (log p_good − log p_other), renormalised over the vocabulary
-        logp_grid = {other: {} for other, weights in against.items() if weights is not None}
-
-        def reference_logits(weights, row):
-            lm.update(tree_unflatten(list(weights.items())))
-            inputs, expected, start = _encode(tokenizer, row)
-            hidden = lm.model(mx.array([inputs]))[:, start:]
-            logits = lm.model.embed_tokens.as_linear(hidden) if lm.config.tie_word_embeddings else lm.lm_head(hidden)
-            return nn.log_softmax(logits.astype(mx.float32), axis=-1)[0], mx.array(expected)
-
-        totals = {other: {w: [] for w in TARGET_GUIDANCE_GRID} for other in logp_grid}
-        for row in loss_rows:
-            good_lp, expected = reference_logits(good_weights, row)
-            for other in logp_grid:
-                other_lp, _ = reference_logits(against[other], row)
-                for w in TARGET_GUIDANCE_GRID:
-                    mixed = nn.log_softmax(good_lp + w * (good_lp - other_lp), axis=-1)
-                    totals[other][w].append(float(mx.take_along_axis(mixed, expected[:, None], axis=-1).mean().item()))
-        for other in logp_grid:
-            logp_grid[other] = {str(w): sum(v) / max(1, len(v)) for w, v in totals[other].items()}
-    finally:
-        del model, lm, layers
-        gc.collect()
-        mx.clear_cache()
-
-    arms = {"base": base_scores, "P_good": good_scores, **{f"guided {name}": g["scores"] for name, g in guided.items()}}
+    good_scores = [score_call(t, r) for t, r in zip(good_out, eval_rows + rest_rows)]
+    arms = {"base": base_scores, "P_good": good_scores[: len(eval_rows)]}
     report = {
         "created": time.time(),
         "dataset": dataset["fingerprint"],
-        "config": cfg,
+        "config": _portable(cfg),
         "trainable_parameters": n_params,
-        "rows": {"fit": len(fit_rows), "probe": len(probe_rows), "eval": len(eval_rows), "bad_own": len(own), "bad_synthetic": len(synthetic)},
+        "rows": {"fit": len(fit_rows), "eval": len(eval_rows)},
         "history": history,
-        "loss": {
-            "good_dev_base": loss_before, "good_dev_P_good": loss_good, "good_dev_P_bad": bad_on_good,
-            "bad_dev_base": bad_before, "bad_dev_P_bad": bad_after,
-        },
+        "loss": {"good_dev_base": loss_before, "good_dev_P_good": loss_good},
         "execution": {
             name: {"well_formed": _rate(scores, "well_formed"), "runs": _rate(scores, "runs"), "correct": _rate(scores)}
             for name, scores in arms.items()
-        },
-        "reference_logp": logp_grid,
-        "probe": {
-            "correct": _rate(probe_scores),
-            "wrong": len(wrong),
-            "weak_types": weak_types,
-            "failure_types": dict(failure_types) if failure_types else None,
         },
         "samples": [
             {
@@ -431,222 +292,43 @@ def run_target_pipeline(cfg: dict, dataset: dict, log=print) -> dict:
                 "reference": parse_tool_call(r["completion"]),
                 "base": base_out[i].strip(), "base_correct": base_scores[i]["correct"],
                 "P_good": good_out[i].strip(), "P_good_correct": good_scores[i]["correct"],
-                **{f"guided {name}": g["outputs"][i].strip() for name, g in guided.items()},
-                **{f"guided {name} correct": g["scores"][i]["correct"] for name, g in guided.items()},
             }
             for i, r in enumerate(eval_rows)
         ],
         "seconds": round(time.monotonic() - started, 1),
         "peak_memory_gb": round(mx.get_peak_memory() / 1024**3, 2),
     }
+    if rest_rows:
+        report["unused_held_out"] = _summary(rest_rows, good_scores[len(eval_rows):])
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     (out_dir / "prompt_format.json").write_text(
         json.dumps({"system": TARGET_SYSTEM, "tools": TARGET_TOOLS, "assistant_prefix": "<tool_call>\n", "stop": ["</tool_call>", "<|im_end|>"]}, indent=2),
         encoding="utf-8",
     )
-    log(f"[target] executed-correct on dev: " + ", ".join(f"{k} {v['correct']:.0%}" for k, v in report["execution"].items()))
+    log("[target] executed-correct on held-out requests: " + ", ".join(f"{k} {v['correct']:.0%}" for k, v in report["execution"].items()))
     return report
 
-def crossfit_wrong_calls(dataset: dict, folds: int = 5, log=print) -> dict:
-    """P_good's mistakes on training requests it was not fitted on. The training chains are split into
-    `folds` parts; for each part an adapter with the final settings is trained on the other parts and
-    writes the calls for this one, which are executed. Every wrong call is kept with its request, in
-    `runs/target/crossfit.json`. A part that is already there is not repeated."""
-    import mlx.core as mx
-
-    cfg = json.loads((TARGET_DIR / "report.json").read_text(encoding="utf-8"))["config"]
-    path = TARGET_DIR / "crossfit.json"
-    saved = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"dataset": dataset["fingerprint"], "folds": folds, "parts": {}}
-    if saved.get("dataset") != dataset["fingerprint"] or saved.get("folds") != folds:
-        saved = {"dataset": dataset["fingerprint"], "folds": folds, "parts": {}}
-    train = dataset["target"]["train"]
-    chains = sorted({r["chain_id"] for r in train})
-    random.Random(cfg["seed"] + 5).shuffle(chains)
-    for k in range(folds):
-        if str(k) in saved["parts"]:
-            continue
-        held = set(chains[k::folds])
-        fit_rows, out_rows = [r for r in train if r["chain_id"] not in held], [r for r in train if r["chain_id"] in held]
-        model, tokenizer, lm, layers, _ = _load(cfg, cfg["seed"] + k)
-        try:
-            _fit(lm, tokenizer, fit_rows, cfg, f"cross-fit {k + 1}/{folds}", log)
-            outputs = []
-            for done, row in enumerate(out_rows, 1):
-                outputs.append(_generate(lm, tokenizer, row, cfg["max_new"]))
-                if done % 40 == 0 or done == len(out_rows):
-                    log(f"[target cross-fit {k + 1}/{folds}] wrote {done}/{len(out_rows)} calls")
-        finally:
-            del model, lm, layers
-            gc.collect()
-            mx.clear_cache()
-        scores = [score_call(t, r) for t, r in zip(outputs, out_rows)]
-        saved["parts"][str(k)] = {
-            "rows": len(out_rows), "correct": sum(s["correct"] for s in scores),
-            "wrong": [{"id": r["id"], "completion": t.strip(), "runs": s["runs"]} for r, t, s in zip(out_rows, outputs, scores) if not s["correct"]],
-        }
-        path.write_text(json.dumps(saved, indent=1), encoding="utf-8")
-        log(f"[target cross-fit {k + 1}/{folds}] {saved['parts'][str(k)]['correct']} of {len(out_rows)} correct")
-    return saved
-
-def train_bad_adapter(rows: list[dict], name: str, log=print) -> None:
-    """Fit an adapter with the final settings on calls that are known to be wrong, as `runs/target/adapter_<name>.safetensors`."""
-    import mlx.core as mx
-    from mlx.utils import tree_flatten
-
-    cfg = json.loads((TARGET_DIR / "report.json").read_text(encoding="utf-8"))["config"]
-    model, tokenizer, lm, layers, _ = _load(cfg, cfg["seed"] + 64)
-    try:
-        _fit(lm, tokenizer, rows, cfg, name, log)
-        mx.save_safetensors(str(TARGET_DIR / f"adapter_{name}.safetensors"), dict(tree_flatten(lm.trainable_parameters())))
-    finally:
-        del model, lm, layers
-        gc.collect()
-        mx.clear_cache()
-
-def score_decoders(dataset: dict, arms: list[dict], log=print) -> dict:
-    """Write and execute the call for every held-out request under each decoder in `arms`, and keep which
-    requests each one gets right in `runs/target/decoders.json`. An arm is {name, weight, floor} plus either
-    `adapter` (steer P_good away from `runs/target/adapter_<adapter>.safetensors`) or `blank_request: true`
-    (steer P_good away from itself reading the prompt with the request removed). An arm with neither is
-    plain P_good. Arms that are already there are not repeated."""
-    import mlx.core as mx
-
-    cfg = json.loads((TARGET_DIR / "report.json").read_text(encoding="utf-8"))["config"]
-    path = TARGET_DIR / "decoders.json"
-    saved = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    if saved.get("dataset") != dataset["fingerprint"]:
-        saved = {"dataset": dataset["fingerprint"], "arms": {}}
-    rows = sorted(dataset["target"]["dev"], key=lambda r: (r["id"].rsplit("/", 1)[1], r["id"]))
-    todo = [a for a in arms if a["name"] not in saved["arms"]]
-    if not todo:
-        return saved
-    model, tokenizer, lm, layers, _ = _load(cfg, cfg["seed"])
-    try:
-        good = mx.load(str(TARGET_DIR / "adapter_good.safetensors"))
-        for arm in todo:
-            other = mx.load(str(TARGET_DIR / f"adapter_{arm['adapter']}.safetensors")) if arm.get("adapter") else None
-            outputs = []
-            for done, row in enumerate(rows, 1):
-                outputs.append(
-                    _generate(
-                        lm, tokenizer, row, cfg["max_new"], good=good, bad=other, weight=arm.get("weight", 0.0), floor=arm.get("floor", 0.1),
-                        bad_row={**row, "speech": ""} if arm.get("blank_request") else None, blank_weight=arm.get("blank_weight", 0.0),
-                    )
-                )
-                if done % 40 == 0 or done == len(rows):
-                    log(f"[decoders] {arm['name']}: {done}/{len(rows)} calls")
-            scores = [score_call(t, r) for t, r in zip(outputs, rows)]
-            saved["arms"][arm["name"]] = {
-                **{k: v for k, v in arm.items() if k != "name"},
-                "well_formed": _rate(scores, "well_formed"), "runs": _rate(scores, "runs"), "correct": _rate(scores),
-                "rows": [{"id": r["id"], "correct": s["correct"], "code": s["code"]} for r, s in zip(rows, scores)],
-            }
-            path.write_text(json.dumps(saved, indent=1), encoding="utf-8")
-            log(f"[decoders] {arm['name']}: {_rate(scores):.1%} of {len(rows)} return the reference value")
-    finally:
-        del model, lm, layers
-        gc.collect()
-        mx.clear_cache()
-    return saved
-
-def score_low_bit(dataset: dict, bits, retrain: bool = False, log=print, rank: int | None = None) -> dict:
-    """The target with its base weights stored at `bits` bits per weight (MLX affine quantisation, groups of
-    64), scored by execution on every held-out request. With `retrain=False` the existing P_good adapter is
-    used as it is; with `retrain=True` an adapter with the same settings and training rows is fitted on top
-    of the low-bit weights first. Results are kept in `runs/target/low_bit.json`."""
-    import mlx.core as mx
-    from mlx.utils import tree_flatten
-
-    cfg = {**json.loads((TARGET_DIR / "report.json").read_text(encoding="utf-8"))["config"], "bits": bits}
-    if retrain and rank:  # a wider adapter has more room to make up for what the low-bit weights lost
-        cfg.update(rank=rank, alpha=2.0 * rank)
-    label = "ternary" if bits == "ternary" else f"{bits}-bit"
-    path = TARGET_DIR / "low_bit.json"
-    saved = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    if saved.get("dataset") != dataset["fingerprint"]:
-        saved = {"dataset": dataset["fingerprint"], "runs": {}}
-    name = f"{label}, " + (f"adapter retrained on it (rank {cfg['rank']})" if retrain else "existing adapter")
-    if name in saved["runs"]:
-        return saved
-    rows = sorted(dataset["target"]["dev"], key=lambda r: (r["id"].rsplit("/", 1)[1], r["id"]))
-    model, tokenizer, lm, layers, _ = _load(cfg, cfg["seed"])
-    try:
-        if retrain:
-            rng = random.Random(cfg["seed"])
-            train = dataset["target"]["train"]
-            chains = sorted({r["chain_id"] for r in train})
-            rng.shuffle(chains)
-            probe_chains = set(chains[: max(1, round(len(chains) * cfg["probe_share"]))])
-            fit_rows = [r for r in train if r["chain_id"] not in probe_chains][: cfg["n_good"]]
-            _fit(lm, tokenizer, fit_rows, cfg, f"P_good on {label}", log)
-            mx.save_safetensors(str(TARGET_DIR / f"adapter_good_{label}_r{cfg['rank']}.safetensors"), dict(tree_flatten(lm.trainable_parameters())))
-        else:
-            lm.load_weights(str(TARGET_DIR / "adapter_good.safetensors"), strict=False)
-        outputs = []
-        for done, row in enumerate(rows, 1):
-            outputs.append(_generate(lm, tokenizer, row, cfg["max_new"]))
-            if done % 40 == 0 or done == len(rows):
-                log(f"[low-bit] {name}: {done}/{len(rows)} calls")
-    finally:
-        del model, lm, layers
-        gc.collect()
-        mx.clear_cache()
-    scores = [score_call(t, r) for t, r in zip(outputs, rows)]
-    saved["runs"][name] = {
-        "bits": bits, "retrained": retrain, "rank": cfg["rank"], "well_formed": _rate(scores, "well_formed"), "runs": _rate(scores, "runs"), "correct": _rate(scores),
-        "rows": [{"id": r["id"], "correct": s["correct"], "code": s["code"]} for r, s in zip(rows, scores)],
-    }
-    path.write_text(json.dumps(saved, indent=1), encoding="utf-8")
-    log(f"[low-bit] {name}: {_rate(scores):.1%} of {len(rows)} return the reference value")
-    return saved
-
-def rebuild_weak_target(dataset: dict, log=print) -> None:
-    """Write `runs/target/adapter_weak.safetensors` for a P_good that was trained before the weak snapshot was
-    saved: the same rows, seed and schedule, stopped a quarter of the way through."""
-    import mlx.core as mx
-
-    cfg = json.loads((TARGET_DIR / "report.json").read_text(encoding="utf-8"))["config"]
-    rng = random.Random(cfg["seed"])
-    train = dataset["target"]["train"]
-    chains = sorted({r["chain_id"] for r in train})
-    rng.shuffle(chains)
-    probe_chains = set(chains[: max(1, round(len(chains) * cfg["probe_share"]))])
-    fit_rows = [r for r in train if r["chain_id"] not in probe_chains][: cfg["n_good"]]
-    model, tokenizer, lm, layers, _ = _load(cfg, cfg["seed"])
-    try:
-        snapshots = {}
-        _fit(lm, tokenizer, fit_rows, cfg, "weak P_good", log, snapshots, stop_at_weak=True)
-        mx.save_safetensors(str(TARGET_DIR / "adapter_weak.safetensors"), snapshots["weak"])
-    finally:
-        del model, lm, layers
-        gc.collect()
-
 def score_saved_target(dataset: dict, log=print) -> dict:
-    """Score the saved P_good on every held-out request that took no part in choosing its settings or in the
-    report's own scores, and add the result to `runs/target/report.json` as `unused_held_out`."""
+    """Score the saved adapter again on every held-out request that took no part in choosing its settings or
+    in the report's comparison with the base model, and put the result in `runs/target/report.json` as
+    `unused_held_out`."""
+    import mlx.core as mx
+
     report = json.loads((TARGET_DIR / "report.json").read_text(encoding="utf-8"))
     cfg = report["config"]
-    spread = lambda rows: sorted(rows, key=lambda r: (r["id"].rsplit("/", 1)[1], r["id"]))
     rows = spread(dataset["target"]["dev"])[cfg["n_eval"]:]
     model, tokenizer, lm, layers, _ = _load(cfg, cfg["seed"])
     try:
         lm.load_weights(str(TARGET_DIR / "adapter_good.safetensors"), strict=False)
         outputs = []
         for done, row in enumerate(rows, 1):
-            outputs.append(_generate(lm, tokenizer, row, cfg["max_new"]))
+            outputs.append(generate(lm, tokenizer, row, cfg["max_new"]))
             if done % 20 == 0 or done == len(rows):
                 log(f"[target] unused held-out requests: {done}/{len(rows)}")
     finally:
         del model, lm, layers
         gc.collect()
-    scores = [score_call(t, r) for t, r in zip(outputs, rows)]
-    by_env = {}
-    for row, sc in zip(rows, scores):
-        by_env.setdefault(row["env"], []).append(sc["correct"])
-    report["unused_held_out"] = {
-        "rows": len(rows), "well_formed": _rate(scores, "well_formed"), "runs": _rate(scores, "runs"), "correct": _rate(scores),
-        "by_environment": {env: {"rows": len(v), "correct": sum(v) / len(v)} for env, v in sorted(by_env.items())},
-        "wrong": [{"request": r["speech"], "reference": parse_tool_call(r["completion"]), "got": sc["code"]} for r, sc in zip(rows, scores) if not sc["correct"]],
-    }
+        mx.clear_cache()
+    report["unused_held_out"] = _summary(rows, [score_call(t, r) for t, r in zip(outputs, rows)])
     (TARGET_DIR / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report["unused_held_out"]

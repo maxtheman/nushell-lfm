@@ -5,9 +5,9 @@
 2. Away from a P_bad trained on P_good's real mistakes, collected by cross-fitting: five adapters, each
    trained on four fifths of the training chains and asked for the calls of the remaining fifth.
 
-    .venv/bin/python scripts/run_guidance_followup.py                 # everything (about four hours)
-    .venv/bin/python scripts/run_guidance_followup.py --stage request # only the first part (under an hour)
-    .venv/bin/python scripts/run_guidance_followup.py --stage table   # print the table from what is saved
+    .venv/bin/python experiments/run_guidance_followup.py                 # everything (about four hours)
+    .venv/bin/python experiments/run_guidance_followup.py --stage request # only the first part (under an hour)
+    .venv/bin/python experiments/run_guidance_followup.py --stage table   # print the table from what is saved
 
 Results are kept in runs/target/decoders.json and runs/target/crossfit.json; finished parts are not repeated.
 """
@@ -21,7 +21,7 @@ from pathlib import Path
 
 print = functools.partial(print, flush=True)
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(ROOT), str(ROOT / "experiments")]
 
 # Held-out requests of dataset edd14fe576df that do not contain what their reference call needs (read by hand
 # from P_good's wrong calls; see notes/lab-notes.md). Matched by how the request starts.
@@ -68,9 +68,9 @@ def main() -> int:
     parser.add_argument("--stage", choices=["request", "crossfit", "bad", "table", "all"], default="all")
     args = parser.parse_args()
 
-    import notebook
+    from defs import load_defs
 
-    _, defs = notebook.app.run()
+    defs = load_defs()
     dataset = defs["dataset"]
     target_dir = defs["TARGET_DIR"]
     print(f"dataset {dataset['fingerprint']}")

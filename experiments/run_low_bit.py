@@ -2,8 +2,8 @@
 """How far the target's base weights can be squeezed: score it at fewer bits per weight, by execution, on every
 held-out request, first with the existing adapter and then with an adapter retrained on the low-bit weights.
 
-    .venv/bin/python scripts/run_low_bit.py --bits 4 3 2            # existing adapter
-    .venv/bin/python scripts/run_low_bit.py --bits 2 ternary --retrain --rank 32   # adapter retrained on the low-bit weights
+    .venv/bin/python experiments/run_low_bit.py --bits 4 3 2            # existing adapter
+    .venv/bin/python experiments/run_low_bit.py --bits 2 ternary --retrain --rank 32   # adapter retrained on the low-bit weights
 
 Results are kept in runs/target/low_bit.json; finished runs are not repeated.
 """
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 print = functools.partial(print, flush=True)
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path[:0] = [str(Path(__file__).resolve().parent.parent), str(Path(__file__).resolve().parent)]
 
 
 def main() -> int:
@@ -24,9 +24,9 @@ def main() -> int:
     parser.add_argument("--retrain", action="store_true")
     args = parser.parse_args()
 
-    import notebook
+    from defs import load_defs
 
-    _, defs = notebook.app.run()
+    defs = load_defs()
     for bits in args.bits:
         saved = defs["score_low_bit"](defs["dataset"], bits if bits == "ternary" else int(bits), args.retrain, print, args.rank)
     print()

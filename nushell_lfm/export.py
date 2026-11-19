@@ -7,7 +7,7 @@ import shutil
 import time
 
 from .core import ROOT
-from .breaks import parse_tool_call
+from .calls import parse_tool_call
 from .target import TARGET_DIR
 
 BROWSER_DIR = ROOT / "webgpu-demo"

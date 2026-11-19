@@ -11,7 +11,7 @@ environment, and counts as correct only if it returns the reference value: the s
     mise run eval-endpoint -- --export     # only write the evaluation set to runs/eval/eval_set.jsonl
     mise run eval-endpoint -- --compare    # table of every endpoint scored so far, next to our model
 
-Useful flags: --limit 40 (the same 40 requests our decoders were compared on), --no-tools (for models without
+Useful flags: --limit 40 (the 40 requests our model is compared with its base model on), --no-tools (for models without
 tool calling: ask for the code in a fenced block), --extra '{"reasoning_effort": "low"}' (extra body fields),
 --name (label for the result file), --concurrency, --max-tokens.
 
@@ -34,20 +34,35 @@ from pathlib import Path
 print = functools.partial(print, flush=True)
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-OUT = ROOT / "runs" / "providers"
+from nushell_lfm.core import RUNS_DIR  # noqa: E402
+
+OUT = RUNS_DIR / "providers"
 RUN_LOCK = __import__("threading").Lock()
 NO_TOOLS_NOTE = " There is no tool here: reply with only the Nushell source, in one ```nu fenced block."
 
 
 def user_text(row: dict) -> str:
-    """The user turn, exactly as `target_prompt` in the notebook builds it."""
+    """The user turn, exactly as `nushell_lfm.target.target_prompt` builds it."""
     refs = "\n\n".join(f"{doc['title']} (nushell)\n{doc['text']}" for doc in row.get("references", []))
     text = f"\nSyntax references:\n{refs}\n\n" if refs else "\n"
     return text + f"Request: {row['speech']}\nWorkspace: {row['context']}\nFiles: " + ", ".join(row["workspace_files"])
 
 
+def load_defs() -> dict:
+    """What scoring needs from the pipeline: the dataset, the prompt and tool, and how a call is run and compared."""
+    from nushell_lfm.calls import parse_tool_call
+    from nushell_lfm.environments import run_nu, same_output
+    from nushell_lfm.pipeline import build
+    from nushell_lfm.target import TARGET_SYSTEM, TARGET_TOOLS
+
+    return {
+        "dataset": build()["dataset"], "TARGET_SYSTEM": TARGET_SYSTEM, "TARGET_TOOLS": TARGET_TOOLS,
+        "parse_tool_call": parse_tool_call, "run_nu": run_nu, "same_output": same_output,
+    }
+
+
 def build_cases(defs: dict, limit: int | None) -> list[dict]:
-    """The held-out requests in the order the report uses, so --limit 40 is the set our decoders were compared on."""
+    """The held-out requests in the order the report uses, so --limit 40 is the set our model was compared with its base on."""
     dev = sorted(defs["dataset"]["target"]["dev"], key=lambda r: (r["id"].rsplit("/", 1)[1], r["id"]))
     cases = [
         {
@@ -160,7 +175,7 @@ def score(case: dict, endpoint: Endpoint, defs: dict) -> dict:
     })
     if code is None:
         return out
-    with RUN_LOCK:  # one Nushell process at a time: the notebook's runner keeps a cache file
+    with RUN_LOCK:  # one Nushell process at a time: the runner keeps a cache file
         result = defs["run_nu"](code, case["env"])
     out.update({"well_formed": True, "runs": result["ok"], "correct": result["ok"] and defs["same_output"](result["stdout"], case["expected"])})
     return out
@@ -170,7 +185,7 @@ def run_endpoint(defs: dict, base_url: str, model: str, key: str, *, name: str |
                  log=print, **options) -> dict:
     """Score one model of one endpoint on the held-out requests and save the result under runs/providers/.
     The key is used for the requests and is not written anywhere. `defs` needs dataset, TARGET_SYSTEM,
-    TARGET_TOOLS, parse_tool_call, run_nu and same_output from the notebook."""
+    TARGET_TOOLS, parse_tool_call, run_nu and same_output (see `load_defs`)."""
     cases = build_cases(defs, limit)
     endpoint = Endpoint(base_url, model, key, defs["TARGET_TOOLS"], **options)
     name = name or model
@@ -192,7 +207,7 @@ def run_endpoint(defs: dict, base_url: str, model: str, key: str, *, name: str |
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / (re.sub(r"[^\w.-]+", "_", name) + ".json")
     path.write_text(json.dumps(saved, indent=1), encoding="utf-8")
-    log(f"saved {path.relative_to(ROOT)}")
+    log(f"saved {path}")
     return saved
 
 
@@ -216,7 +231,7 @@ def summarise(rows: list[dict]) -> dict:
 
 def ours(limit: int | None) -> dict | None:
     """Our fine-tuned model on the same requests, from the saved report (40 compared + the 191 others)."""
-    path = ROOT / "runs" / "target" / "report.json"
+    path = RUNS_DIR / "target" / "report.json"
     if not path.exists():
         return None
     report = json.loads(path.read_text(encoding="utf-8"))
@@ -247,7 +262,7 @@ def compare() -> None:
     for size in sorted(sizes | {None}, key=lambda v: v or 0):
         mine = ours(size)
         if mine:
-            rows.append((f"ours: LFM3 1.7B + P_good ({mine['requests']})", mine))
+            rows.append((f"ours: LFM3 1.7B + LoRA ({mine['requests']})", mine))
     table(rows)
     if len(sizes) > 1:
         print("\nNot every endpoint was scored on the same number of requests; compare rows with the same count.")
@@ -279,17 +294,15 @@ def main() -> int:
         if args.api_key_env and not os.environ.get(args.api_key_env):
             parser.error(f"${args.api_key_env} is not set; export the key, or pass --api-key-env '' for an endpoint without one")
 
-    import notebook
-
-    print("building the dataset (about two minutes)…")
-    _, defs = notebook.app.run()
+    print("building the dataset…")
+    defs = load_defs()
     cases = build_cases(defs, args.limit)
     tools = defs["TARGET_TOOLS"]
     if args.export:
-        path = ROOT / "runs" / "eval" / "eval_set.jsonl"
+        path = RUNS_DIR / "eval" / "eval_set.jsonl"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("".join(json.dumps({**case, "tools": tools}) + "\n" for case in cases), encoding="utf-8")
-        print(f"wrote {len(cases)} requests to {path.relative_to(ROOT)} (dataset {defs['dataset']['fingerprint']})")
+        print(f"wrote {len(cases)} requests to {path} (dataset {defs['dataset']['fingerprint']})")
         return 0
 
     name = args.name or args.model
@@ -300,7 +313,7 @@ def main() -> int:
     )
     summary, rows = saved["summary"], saved["rows"]
     reference = ours(args.limit)
-    table([(name, summary)] + ([(f"ours: LFM3 1.7B + P_good ({reference['requests']})", reference)] if reference else []))
+    table([(name, summary)] + ([(f"ours: LFM3 1.7B + LoRA ({reference['requests']})", reference)] if reference else []))
     failed = [r for r in rows if "error" in r]
     if failed:
         print(f"\n{len(failed)} requests got no answer; the first error: {failed[0]['error'][:300]}")

@@ -7,8 +7,9 @@ import json
 import random
 import re
 
-from .core import RUNS_DIR
+from .calls import wrap_tool_call
 from .catalog import COMMAND_CATALOG
+from .core import RUNS_DIR
 
 REQUESTS_FILE = RUNS_DIR / "generated" / "model_requests.json"
 _CATALOG = {c["name"]: c for c in COMMAND_CATALOG}
@@ -130,57 +131,46 @@ def load_model_requests(k: int) -> dict:
     stored = json.loads(REQUESTS_FILE.read_text(encoding="utf-8"))
     return stored["chains"] if stored.get("k") == k else {}
 
-def assemble_dataset(environments: list[dict], chains: list[dict], samples: list[dict], k: int, model_requests: dict, seed: int = 73) -> dict:
-    """Grader rows (request × call) and target rows (request → reference call). One environment in five is
-    held out whole: nothing from it, in any form or break, is seen in training, so dev scores are for
-    projects the models have never read."""
+def assemble_dataset(environments: list[dict], chains: list[dict], k: int, model_requests: dict, seed: int = 73) -> dict:
+    """Target rows (request → reference call), K per chain. One environment in five is held out whole:
+    nothing from it is seen in training, so held-out scores are for projects the model has never read."""
     rng = random.Random(seed)
     env_ids = sorted({chain["env"] for chain in chains})
     rng.shuffle(env_ids)
     dev_envs = set(env_ids[: max(1, round(len(env_ids) / 5))]) if len(env_ids) > 1 else set()
     dev_chains = {chain["chain_id"] for chain in chains if chain["env"] in dev_envs}
     files_of = {e["id"]: sorted(e["files"]) for e in environments}
-    requests = {}
+    target, written = {"train": [], "dev": []}, Counter()
     for chain in chains:
         stored = model_requests.get(chain["chain_id"])
         ready = stored and stored["code"] == chain["code"] and len(stored["requests"]) >= k
-        requests[chain["chain_id"]] = stored["requests"][:k] if ready else composed_requests(chain, k)
-    written = Counter(r["by"] for rs in requests.values() for r in rs)
-    by_id = {c["chain_id"]: c for c in chains}
-    grader, target = {"train": [], "dev": []}, {"train": [], "dev": []}
-    for sample in samples:
-        chain = by_id[sample["chain_id"]]
-        split = "dev" if sample["chain_id"] in dev_chains else "train"
-        for i, asked in enumerate(requests[sample["chain_id"]]):
-            request = asked["text"]
-            row_id = f"{sample['chain_id']}/{sample['form']}/{sample['failure_type']}/{i}"
-            grader[split].append({"id": row_id, "prompt": request, "style": asked["style"], **sample})
-            if sample["form"] == "reference":
-                target[split].append(
-                    {
-                        "id": row_id,
-                        "chain_id": sample["chain_id"],
-                        "env": sample["env"],
-                        "category": sample["category"],
-                        "speech": request,
-                        "style": asked["style"],
-                        "context": "A project checkout. Paths are relative to the workspace root.",
-                        "workspace_files": files_of[sample["env"]],
-                        # every other request comes without syntax references, as a bare question would
-                        "references": [
-                            {"title": name, "text": f"{_CATALOG[name]['usage']}\n\n> {_CATALOG[name]['syntax']}"}
-                            for name in chain["commands"][:5]
-                            if name in _CATALOG and i % 2 == 0
-                        ],
-                        "completion": sample["completion"],
-                        "expected": chain["expected"],
-                    }
-                )
-    for rows in (*grader.values(), *target.values()):
+        for i, asked in enumerate(stored["requests"][:k] if ready else composed_requests(chain, k)):
+            written[asked["by"]] += 1
+            target["dev" if chain["chain_id"] in dev_chains else "train"].append(
+                {
+                    "id": f"{chain['chain_id']}/reference/valid/{i}",
+                    "chain_id": chain["chain_id"],
+                    "env": chain["env"],
+                    "category": chain["category"],
+                    "speech": asked["text"],
+                    "style": asked["style"],
+                    "context": "A project checkout. Paths are relative to the workspace root.",
+                    "workspace_files": files_of[chain["env"]],
+                    # every other request comes without syntax references, as a bare question would
+                    "references": [
+                        {"title": name, "text": f"{_CATALOG[name]['usage']}\n\n> {_CATALOG[name]['syntax']}"}
+                        for name in chain["commands"][:5]
+                        if name in _CATALOG and i % 2 == 0
+                    ],
+                    "completion": wrap_tool_call(chain["code"]),
+                    "expected": chain["expected"],
+                }
+            )
+    for rows in target.values():
+        rows.sort(key=lambda r: r["id"])
         rng.shuffle(rows)
-    digest = hashlib.sha1(json.dumps([[r["id"], r["prompt"], r["completion"]] for r in grader["train"] + grader["dev"]]).encode()).hexdigest()[:12]
+    digest = hashlib.sha1(json.dumps(sorted([r["id"], r["speech"], r["completion"]] for r in target["train"] + target["dev"])).encode()).hexdigest()[:12]
     return {
-        "grader": grader,
         "target": target,
         "dev_chains": sorted(dev_chains),
         "dev_envs": sorted(dev_envs),
@@ -199,14 +189,9 @@ def save_dataset(dataset: dict, settings: dict | None = None) -> None:
         "environment_seeds": dataset["environment_seeds"],
         "held_out_environments": dataset["dev_envs"],
         "requests_by": dataset["requests_by"],
-        "rows": {f"{kind}_{split}": len(dataset[kind][split]) for kind in ("grader", "target") for split in ("train", "dev")},
+        "rows": {f"target_{split}": len(dataset["target"][split]) for split in ("train", "dev")},
         "settings": settings or {},
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
-    for name, rows in (
-        ("grader_train", dataset["grader"]["train"]),
-        ("grader_dev", dataset["grader"]["dev"]),
-        ("target_train", dataset["target"]["train"]),
-        ("target_dev", dataset["target"]["dev"]),
-    ):
-        (out / f"{name}.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    for split, rows in dataset["target"].items():
+        (out / f"target_{split}.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")

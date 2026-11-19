@@ -10,3 +10,4 @@ nu-wasm/target/
 webgpu-demo/models/
 data/usage_cache/
 runs-sandbox/
+dist/

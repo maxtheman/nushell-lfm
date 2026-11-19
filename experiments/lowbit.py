@@ -16,9 +16,9 @@ layer of every block replaced, in four steps:
 
 The result is scored the same way as everything else: its calls are executed on the held-out requests.
 
-    .venv/bin/python lowbit.py --bits 2          # about two hours alone on a 24 GB M4 Pro
-    .venv/bin/python lowbit.py --bits 1
-    .venv/bin/python lowbit.py --bits 2 --smoke  # a few steps of every stage, to prove the code path
+    .venv/bin/python experiments/lowbit.py --bits 2          # about two hours alone on a 24 GB M4 Pro
+    .venv/bin/python experiments/lowbit.py --bits 1
+    .venv/bin/python experiments/lowbit.py --bits 2 --smoke  # a few steps of every stage, to prove the code path
 
 Inspired by the recipe of rotating, quantising and distilling against the frozen full-precision weights; scaled
 down from billions of general tokens to the few hundred thousand tokens of this one task.
@@ -36,7 +36,8 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
+sys.path[:0] = [str(ROOT), str(ROOT / "experiments")]
 print = functools.partial(print, flush=True)
 
 
@@ -383,10 +384,10 @@ def run(bits: int, *, group: int = 128, chunk: int = 4, block_steps: int = 300, 
     from mlx.utils import tree_flatten, tree_unflatten
     from mlx_vlm import load
 
-    import notebook
+    from defs import load_defs
 
     started = time.monotonic()
-    _, defs = notebook.app.run()
+    defs = load_defs()
     dataset = defs["dataset"]
     target_dir = defs["TARGET_DIR"]
     cfg = json.loads((target_dir / "report.json").read_text(encoding="utf-8"))["config"]

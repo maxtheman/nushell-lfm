@@ -4,8 +4,9 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import re
 
-from .chains import structural_breaks
-from .environments import OPTIONAL_KEYS, run_nu, same_output, save_nu_cache
+from nushell_lfm.calls import parse_tool_call, wrap_tool_call
+from nushell_lfm.chains import structural_breaks
+from nushell_lfm.environments import OPTIONAL_KEYS, run_nu, same_output, save_nu_cache
 
 FAILURE_TYPES = {
     "valid": "The tool call is well formed and does what was asked.",
@@ -35,16 +36,6 @@ VERIFIED_BY = {
     "grader_false_pass": "matches the reference here; the reference changes in a second copy of the environment",
     "grader_false_fail": "output is not identical to the reference but is the same answer once formatting, order and type are set aside",
 }
-
-def wrap_tool_call(code: str) -> str:
-    return f"<function=run_nushell>\n<parameter=code>\n{code}\n</parameter>\n</function>\n</tool_call>"
-
-_CALL = re.compile(r"\A<function=run_nushell>\n<parameter=code>\n(.*)\n</parameter>\n</function>\n</tool_call>\s*\Z", re.S)
-
-def parse_tool_call(completion: str):
-    """The Nushell source of a well-formed run_nushell call, else None."""
-    found = _CALL.match(completion)
-    return found.group(1) if found else None
 
 def split_top(code: str, sep: str) -> list[str]:
     """Split at `sep` outside quotes and brackets, so pipes inside closures stay put."""

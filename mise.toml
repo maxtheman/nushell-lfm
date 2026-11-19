@@ -15,7 +15,7 @@ description = "Install the toolchain and Python dependencies, then check the env
 run = "bash scripts/setup.sh"
 
 [tasks.verify-env]
-description = "Check Python packages, the nu binary and the two checkpoints"
+description = "Check Python packages, the nu binary and the checkpoint"
 run = """
 .venv/bin/python -c "
 import os, pathlib, shutil
@@ -23,7 +23,7 @@ import marimo, altair, pandas, mlx.core, mlx_vlm
 print('python packages: ok (marimo', marimo.__version__ + ')')
 print('nu:', 'ok' if shutil.which('nu') else 'MISSING')
 models = pathlib.Path(os.environ['MODELS_DIR'])
-for name in ['d1-2b-mlx-8bit', 'lfm3-1.7b-mlx-8bit']:
+for name in ['lfm3-1.7b-mlx-8bit']:
     print(f'checkpoint {name}:', 'ok' if (models / name / 'config.json').exists() else 'MISSING (expected under MODELS_DIR)')
 "
 """
@@ -41,12 +41,16 @@ description = "Static checks on the notebook"
 run = ".venv/bin/marimo check notebook.py"
 
 [tasks.smoke]
-description = "Build the dataset and run both training stages at their smallest size"
-run = ".venv/bin/python scripts/run_smoke_test.py"
+description = "Build the dataset and train on 8 rows, to prove the code path (written to runs/smoke)"
+run = ".venv/bin/python scripts/train.py --preset smoke"
 
-[tasks.standard]
-description = "Build the dataset and run both training stages at the standard size"
-run = ".venv/bin/python scripts/run_smoke_test.py --preset standard"
+[tasks.train]
+description = "Build the dataset, train the adapter, score it on every held-out request, export it for the browser (see scripts/train.py --help)"
+run = ".venv/bin/python scripts/train.py"
+
+[tasks.test]
+description = "Tests that need no model: the generators are deterministic, calls parse, the dataset matches its manifest"
+run = ".venv/bin/python -m unittest discover -s tests -v"
 
 [tasks.build-wasm]
 description = "Compile Nushell to WebAssembly into public/nu-wasm (needs rustup and wasm-pack; a prebuilt copy is checked in)"
@@ -55,7 +59,7 @@ description = "Compile Nushell to WebAssembly into public/nu-wasm (needs rustup 
 run = "cd nu-wasm && env -u RUSTUP_TOOLCHAIN RUSTFLAGS=\"--remap-path-prefix=$HOME=~\" wasm-pack build --target web --release --out-dir ../public/nu-wasm --no-typescript && rm -f ../public/nu-wasm/.gitignore ../public/nu-wasm/package.json"
 
 [tasks.check-wasm]
-description = "Run every dataset sample in the WebAssembly build and compare with native nu"
+description = "Run the reference call of every chain in the WebAssembly build and compare with native nu"
 run = ".venv/bin/python scripts/check_nu_wasm.py"
 
 [tasks.fetch-onnx]
@@ -100,6 +104,6 @@ run = "mkdir -p runs-sandbox && rsync -a --exclude 'backup-*' --exclude 'final-b
 description = "Score any OpenAI-compatible chat endpoint on the held-out requests (see scripts/eval_endpoint.py --help)"
 run = ".venv/bin/python scripts/eval_endpoint.py"
 
-[tasks.experiments]
-description = "Sweeps, placement ablations, final adapters and guidance comparison for both models, then the browser export"
-run = ".venv/bin/python scripts/run_experiments.py"
+[tasks.build-demo]
+description = "Collect the browser demo into dist/demo as a static site; MODEL=owner/name makes it load the model from the Hugging Face Hub"
+run = "bash scripts/build_demo.sh"

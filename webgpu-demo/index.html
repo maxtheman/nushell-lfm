@@ -35,12 +35,16 @@
   </div>
   <script type="module">
     import { AutoModelForCausalLM, AutoTokenizer, TextStreamer, env } from "./node_modules/@huggingface/transformers/dist/transformers.min.js";
-    import initNu, * as nu from "/nu-wasm/nu_wasm.js";
+    import initNu, * as nu from "./nu-wasm/nu_wasm.js";
 
-    // Everything is served from this folder: no model or runtime is fetched from the network.
-    env.allowRemoteModels = false;
-    env.allowLocalModels = true;
-    env.useBrowserCache = false;  // the model is served from this machine; a cached copy would outlive a new export
+    // Where the model comes from is in config.json (or ?model=): a folder under ./models/, served from this
+    // machine, or an "owner/name" repository on the Hugging Face Hub for a deployed copy of this page.
+    const config = await fetch("config.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+    const MODEL = new URLSearchParams(location.search).get("model") || config.model || "nushell-lfm3-1.7b";
+    const remote = MODEL.includes("/");
+    env.allowRemoteModels = remote;
+    env.allowLocalModels = !remote;
+    env.useBrowserCache = remote;  // a local model is not cached: a cached copy would outlive a new export
     env.localModelPath = "./models/";
     env.backends.onnx.wasm.wasmPaths = new URL("./node_modules/onnxruntime-web/dist/", location.href).href;
 
@@ -193,7 +197,6 @@
     $("mode").addEventListener("click", () => { setMode(state.mode === "ask" ? "nu" : "ask"); $("input").focus(); });
 
     // ---- start ------------------------------------------------------------------------------------
-    const MODEL = "nushell-lfm3-1.7b";
     const BANNER = String.raw`
  _   _                 _          _ _
 | \ | |_   _       ___| |__   ___| | |

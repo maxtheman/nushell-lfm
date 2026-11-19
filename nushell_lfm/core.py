@@ -24,7 +24,7 @@ SANDBOX = RUNS_DIR.resolve() != (ROOT / "runs").resolve()
 nu_path = shutil.which("nu")
 
 # The modules whose functions the notebook shows running line by line.
-_SOURCE_MODULES = ("environments", "catalog", "chains", "breaks", "dataset", "grader", "target", "export")
+_SOURCE_MODULES = ("environments", "catalog", "chains", "dataset", "target", "export")
 
 
 def show_path(path) -> str:
