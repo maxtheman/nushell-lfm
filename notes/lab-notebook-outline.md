@@ -49,11 +49,10 @@ Numbers are in `results-tables.md`; the longer notes with charts are in `lab-not
 
 - Grader on D1 2B: 96% failure type, 97% broken or not.
 - Guided decoding: no decoder beat the plain adapter. The adapter's first choice leads its runner-up by a median of 11.1 nats; a second token is within the floor at 19 of 1,290 tokens. Chart `charts/4-guidance-margins.png`.
-- Low-bit base weights: 91% at 4 bits, 73% at 3 bits, 0% at 2 bits without retraining. A 2-bit run with block retraining and distillation is in progress.
+- Low-bit base weights: 91% at 4 bits, 73% at 3 bits, 0% at 2 bits without retraining. With block retraining and distillation, 2 bits gets 82.3%.
 - Table 7.
 
 ## 8. Open items
 
-- 2-bit result.
 - Cross-fitted `P_bad` and combined guidance.
 - Hosted models on all 231 requests (40 so far).

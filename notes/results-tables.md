@@ -99,3 +99,4 @@ The 11 model-side errors come from 5 chain patterns.
 | 4-bit base weights, existing adapter, 231 requests | 91.3% |
 | 3-bit | 73.2% |
 | 2-bit, plain requantisation | 0% |
+| 2-bit, blocks retrained then distilled, 231 requests | 82.3% (412 MB of block weights) |

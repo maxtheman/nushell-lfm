@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nushell in the browser</title>
+  <style>
+    :root { --term: #14161a; --term-ink: #d7dae0; --term-dim: #8b929c; --term-line: #2a2e35; --nu: #6cc08b; --err: #ef8a62; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; background: var(--term); }
+    .term { height: 100%; color: var(--term-ink); display: flex; flex-direction: column; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #scroll { flex: 1; overflow: auto; padding: 20px 24px 8px; }
+    .entry { margin-bottom: 12px; }
+    .line { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .out { white-space: pre; overflow-x: auto; line-height: 1.2; scrollbar-width: thin; scrollbar-color: var(--term-line) transparent; }
+    .dim { color: var(--term-dim); } .who-nu { color: var(--nu); } .err { color: var(--err); }
+    .intro { max-width: 78ch; } .intro a { color: var(--nu); }
+    .choice { cursor: pointer; } .choice:hover { color: #fff; }
+    .inputrow { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--term-line); padding: 12px 24px; }
+    #cwd { color: var(--nu); white-space: nowrap; }
+    #input { flex: 1; min-width: 0; font: inherit; color: var(--term-ink); background: transparent; border: 0; outline: 0; }
+    select { font: inherit; color: var(--term-dim); background: transparent; border: 1px solid var(--term-line); border-radius: 5px; padding: 2px 6px; }
+  </style>
+</head>
+<body>
+  <div class="term">
+    <div id="scroll" aria-live="polite"></div>
+    <div class="inputrow">
+      <span id="cwd">~ ❯</span>
+      <input id="input" autocomplete="off" spellcheck="false" />
+      <select id="env" aria-label="Project"></select>
+    </div>
+  </div>
+  <script type="module">
+    // Nushell compiled to WebAssembly, over a small generated project held in memory. Nothing leaves the page.
+    import initNu, * as nu from "./nu-wasm/nu_wasm.js";
+
+    const $ = (id) => document.getElementById(id);
+    const [config, environments] = await Promise.all(["config.json", "environments.json"].map((f) => fetch(f).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
+    await initNu();
+    const state = { history: [], at: 0 };
+
+    function entry() { const box = document.createElement("div"); box.className = "entry"; $("scroll").append(box); return box; }
+    function line(box, text, cls = "") {
+      const el = document.createElement("div");
+      el.className = `line ${cls}`; el.textContent = text; box.append(el);
+      $("scroll").scrollTop = $("scroll").scrollHeight;
+      return el;
+    }
+    const cwd = () => JSON.parse(nu.session_run("pwd")).stdout.replace(/^\/workspace/, "~") || "~";
+    function run(code) {
+      if (!code.trim()) return;
+      state.history.push(code); state.at = state.history.length;
+      if (code.trim() === "clear") { $("scroll").textContent = ""; return; }
+      const box = entry();
+      const typed = line(box, "");
+      const tag = document.createElement("span"); tag.className = "who-nu"; tag.textContent = `${cwd()} ❯ `;
+      typed.append(tag, document.createTextNode(code));
+      const result = JSON.parse(nu.session_run(code));
+      const text = result.ok ? result.stdout : result.stderr;
+      if (text) line(box, text, result.ok ? "out" : "err");
+      if (result.changed.length) line(box, `wrote ${result.changed.join(", ")}`, "dim");
+      $("cwd").textContent = `${cwd()} ❯`;
+    }
+    function open(index) {
+      nu.set_files(JSON.stringify(environments[index].files));
+      nu.session_reset();
+      $("cwd").textContent = "~ ❯";
+    }
+
+    environments.forEach((e, i) => $("env").append(new Option(e.id || `project ${i + 1}`, i)));
+    $("env").addEventListener("change", () => { open(Number($("env").value)); line(entry(), `opened ${$("env").selectedOptions[0].text}`, "dim"); $("input").focus(); });
+    $("input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { const text = $("input").value; $("input").value = ""; run(text); }
+      else if (e.key === "ArrowUp" && state.at > 0) { e.preventDefault(); $("input").value = state.history[--state.at]; }
+      else if (e.key === "ArrowDown") { e.preventDefault(); state.at = Math.min(state.history.length, state.at + 1); $("input").value = state.history[state.at] ?? ""; }
+    });
+
+    open(0);
+    const links = config.links || {};
+    const link = (text, url) => { if (!url) return document.createTextNode(text); const a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener"; a.textContent = text; return a; };
+    const intro = line(entry(), "", "intro");
+    intro.append(
+      `This is Nushell ${nu.nu_version()} compiled to WebAssembly, running in this page over a small generated project. Type a command below. It is the runner from `,
+      link("the LFM3 Nushell demo", links.demo), ", with the code on ", link("GitHub", links.github), ".",
+    );
+    const list = entry();
+    ["ls", "ls **/* | where type == file | sort-by size --reverse | first 5", "glob **/*.toml | each {|f| open $f | columns }", "help commands | where category == filters | get name | first 12"].forEach((code) => {
+      line(list, code, "choice").addEventListener("click", () => run(code));
+    });
+    $("input").focus();
+    window.runner = { run };  // for automated checks
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fine-tuning a small model to drive Nushell: lab notes</title>
+<style>
+  :root { --ink: #1c1917; --dim: #57534e; --bg: #fafaf9; --claude: #b45309; --claude-bg: #fff7ed; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #e7e5e4; --dim: #a8a29e; --bg: #1c1917; --claude: #fdba74; --claude-bg: #292524; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.6 Georgia, "Iowan Old Style", serif; }
+  main { max-width: 68ch; margin: 0 auto; padding: 48px 16px 96px; }
+  h1 { font-size: 1.7rem; line-height: 1.2; } h2 { font-size: 1.25rem; margin-top: 2.2em; }
+  code { font: 0.85em ui-monospace, SFMono-Regular, Menlo, monospace; }
+  /* Claude's notes: their own face and a bar down the side */
+  blockquote { margin: 1.1em 0 1.1em 0; padding: 10px 14px; border-left: 4px solid var(--claude); background: var(--claude-bg); border-radius: 0 6px 6px 0;
+               font: 14.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dim); }
+  blockquote p { margin: 0; } blockquote strong { color: var(--claude); }
+</style>
+</head>
+<body><main>
+<h1>Fine-tuning a small model to drive Nushell: lab notes</h1>
+<p>This is the first in a series of notebooks I'll be posting about fine-tuning small models.</p>
+<p>Here are my rough notes on what went well and what didn't go well.</p>
+<blockquote>
+<p><strong>Claude:</strong> I'm Claude, the coding agent Max built this with. My notes are the indented ones. I've kept them to numbers from the saved runs.</p>
+</blockquote>
+<h2>Went well</h2>
+<p>Synthetic data worked great, but what worked better was to treat it as an inverse problem. What I mean by that is, you should start from the endpoint you're trying to achieve (in my case, the successful command execution) and work backwards. This will let you know precisely when and where things go wrong.</p>
+<blockquote>
+<p><strong>Claude:</strong> Concretely: a call counts only if running it returns the reference value. On 231 requests from four projects the model never saw, it got 214 (92.6%). The base model got 3 of the 40 it was run on.</p>
+</blockquote>
+<p>You should also spend most of your time on the data generation itself. My first couple of passes at the data were too naive to transfer usefully. What worked was setting up a rubric and asking:</p>
+<ul>
+<li>For the environment</li>
+<li>What are all the commands we have access to?<ul>
+<li>How will they all combine?</li>
+</ul>
+</li>
+<li>What can go wrong?<ul>
+<li>Parsing, wrong paths, etc. I handled these by focusing on command generation that didn't need hardcoded strings.</li>
+<li>What can we detect automatically when things go wrong?</li>
+<li>What can we grade when things compile but maybe still aren't correct?</li>
+</ul>
+</li>
+<li>Where do we want to make simplifications in the first version?<ul>
+<li>I put data and SQL out of scope for this first version, as well as agents.</li>
+</ul>
+</li>
+<li>For the user</li>
+<li>What will they ask?</li>
+<li>What tone will they take?</li>
+<li>Are there metaphors or analogies they'll use? Shorthand?</li>
+<li>With what frequency do we think they'll call which commands?</li>
+</ul>
+<p>Set these up as cross-tabs ahead of time and be ready to read into the individual rows.</p>
+<blockquote>
+<p><strong>Claude:</strong> The one cross-tab we didn't make cost us. Category shares came from usage data, but nothing counted chains per kind of file. The first run had 5 training chains that open a JSON file, and 4 of its 11 wrong calls were <code>open --raw</code> on JSON.</p>
+</blockquote>
+<p>I strongly recommend literate programming and interactivity. With agents it's harder than ever to really understand what is being built unless you spend a lot of time on it. So in the notebook, I had some of the core sections exposed as faders and knobs, used live edit, put charts in there, and made this great 3D visualization to make sure I really understood a little bit more of what was going on, and also to make it more communicable to other people in the future.</p>
+<blockquote>
+<p><strong>Claude:</strong> From my side of that: the data generator runs line by line on the page for whichever environment is picked, so Max could read what I had wired up without opening the code.</p>
+</blockquote>
+<p>You probably need more data than you think. Even at 20 environments with hundreds of commands, I could have scaled way up and gotten additional performance and generality out of this same training.</p>
+<blockquote>
+<p><strong>Claude:</strong> The two runs we have: 72% with 162 chains in 10 environments, 92% with 401 chains in 20. They used different held-out projects and settings, so it's two points, not a curve.</p>
+</blockquote>
+<p>The LoRA settings suggested in the Liquid notebook, along with a reading of "LoRA Without Regret" by John Schulman at Thinking Machines, basically provided the settings, and they worked great.</p>
+<blockquote>
+<p><strong>Claude:</strong> What the sweep picked: rank 8 on every linear layer, learning rate 2e-4. It was scored on 24 requests, so only the worst setting (lr 4e-4, 42%) is clearly apart from the best (75%). The final adapter is 8.2 M parameters, trained on 825 rows for 2 epochs.</p>
+</blockquote>
+<p>Finally, starting with a single case and overfitting to it is always a really great idea to prove your learning setup works at all, and then scaling up slowly. It takes a bit of time, but it's helped me detect when settings are wrong or when the agent doing the coding wired up slop.</p>
+<blockquote>
+<p><strong>Claude:</strong> Fair. One example from this project: my first check on rewritten requests accepted "document" as keeping the folder name <code>doc</code>, so bare folder names were getting lost. Reading the rows caught it; the scores didn't.</p>
+</blockquote>
+<h2>What didn't go well</h2>
+<p>I started with a fancier learning setup I didn't need. I tried to train a grader with D1 and use guidance. My plan had been to get an additional couple of points of performance. But the LoRA training was so strong that, with my size of data, the guidance itself became mathematically impossible to use. So until you really understand the cuts of your data and what's generating the learning, don't reach for fancier stuff yet.</p>
+<blockquote>
+<p><strong>Claude:</strong> The numbers behind "impossible": along the reference calls, the model's first-choice token led its runner-up by a median of 11.1 nats, about 66,000 to 1. Guidance could only pick a token within 2.3 nats of the top, which left it a choice at 19 of 1,290 tokens. No guided decoder beat the plain adapter (89.6–92.6% against 92.6%). The grader itself trained fine: 96% on failure type.</p>
+</blockquote>
+<p>I didn't spend enough time on the data or generate enough. If I'd had a lot more, I could have figured out a smarter training setting, I think. I also didn't try to filter down on subsets beforehand to see where the learning signal was coming from. This doesn't need to be terribly complicated either: reading and using the system a bit goes a long way. This was a proof of concept, and now that I have a working model, that's where I'd go next.</p>
+<p>I should have also spent way more time on the failure cases. Moving forward, I'd probably define that up front for all of the important cuts of my data. I think I left some performance on the table just because of the data itself.</p>
+<blockquote>
+<p><strong>Claude:</strong> I read all 17 wrong calls. 6 leave out a step the request names, 5 write a different step, and 6 are requests that don't contain what the reference needs (the model that wrote the requests dropped a key name or repeated its instructions). Leaving those 6 out, it's 214 of 225 (95%). The 11 real errors come from 5 chain patterns.</p>
+</blockquote>
+</main></body>
+</html>

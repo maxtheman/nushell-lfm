@@ -4,6 +4,16 @@ One [marimo](https://marimo.io) notebook that generates a Nushell tool-call data
 
 On 231 requests from four generated projects the model never saw, the fine-tuned model is correct on **214 (92.6%)**; the base model is correct on 8% of the 40 it was run on. The finished model also runs in the browser on WebGPU, next to Nushell compiled to WebAssembly.
 
+| | |
+|---|---|
+| Try it in the browser | [nushell-lfm-demo](https://huggingface.co/spaces/maxhugger/nushell-lfm-demo) (needs WebGPU; downloads 1.1 GB once) |
+| Nushell in WebAssembly on its own | [nu-wasm](https://huggingface.co/spaces/maxhugger/nu-wasm) |
+| The notebook, read-only | [notebook.html](https://maxhugger-nushell-lfm-demo.static.hf.space/notebook.html) |
+| Lab notes | [lab-notes.html](https://maxhugger-nushell-lfm-demo.static.hf.space/lab-notes.html), or [notes/lab-notes-post.md](notes/lab-notes-post.md) |
+| LoRA adapter (MLX) | [maxhugger/nushell-lfm3-1.7b-lora](https://huggingface.co/maxhugger/nushell-lfm3-1.7b-lora) |
+| ONNX build for the browser | [maxhugger/nushell-lfm3-1.7b-onnx](https://huggingface.co/maxhugger/nushell-lfm3-1.7b-onnx) |
+| Dataset | [maxhugger/nushell-tool-calls](https://huggingface.co/datasets/maxhugger/nushell-tool-calls) |
+
 ![The demo: requests answered with a Nushell call that is run in the page](assets/usage.gif)
 
 The demo in the browser: the model writes the call, Nushell in WebAssembly runs it, and the value is compared with the reference.
@@ -146,7 +156,7 @@ The comparison is on this dataset's own convention: one reference value per requ
 - `nu-wasm/` is a small Rust crate that links the Nushell crates of the same release as the native `nu` and adds `ls`, `glob`, `open`, `save`, `cd`, `path type` and friends over an in-memory workspace. The built module is in `public/nu-wasm/` (`mise run build-wasm` rebuilds it). `mise run check-wasm` runs every chain's reference call both ways: of 401, 382 print the same answer and 19 differ only in the order `glob` returns entries (directory order on disk, sorted in the browser). The demo page therefore gets its reference value by running the reference call in the same in-browser Nushell.
 - The export step adds the adapter to the 4-bit ONNX build of the model as low-rank branches beside each quantised weight, then generates with the exported graph on ONNX Runtime and executes the calls to confirm it still works.
 - **Open demo** at the top of the notebook opens `webgpu-demo/` in a new tab: the exported model on WebGPU (Transformers.js) and a Nushell session, on one page. `mise run demo` serves the same page without the notebook.
-- `MODEL=owner/name mise run build-demo` collects the page into `dist/demo` as a static site that downloads the model from that repository on the Hugging Face Hub. `webgpu-demo/config.json` (or `?model=`) says where the model is.
+- `MODEL=owner/name mise run build-demo` collects the page into `dist/demo` as a static site that downloads the model from that repository on the Hugging Face Hub. It also builds `dist/runner`, the Nushell runner alone (`webgpu-demo/runner.html`). `webgpu-demo/config.json` (or `?model=`) says where the model is.
 
 ## Limits to keep in mind
 

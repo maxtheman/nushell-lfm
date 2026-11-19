@@ -18,6 +18,7 @@ Results so far (dataset `edd14fe576df`, same target rows as the shipped dataset)
 - Grader: failure type 96%, broken or not 97%, span found 94% on 400 held-out rows (base model 27% and 61%).
 - Guided decoding did not improve on the plain adapter: 89.6–92.6% across the decoders tried, against 92.6% unguided, on 231 requests.
 - Requantised base weights with the existing adapter: 91% at 4 bits, 73% at 3 bits, 0% at 2 bits.
+- 2 bits with block-wise retraining and distillation (`lowbit.py`): 82.3% (190 of 231), block weights in 412 MB.
 
 `notes/lab-notes.md` has the numbers behind these. Run a script from the project root, for example:
 
