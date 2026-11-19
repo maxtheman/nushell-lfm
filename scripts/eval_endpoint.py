@@ -260,9 +260,11 @@ def compare() -> None:
         saved = json.loads(path.read_text(encoding="utf-8"))
         rows.append((saved["name"], saved["summary"]))
     sizes = {s["requests"] for _, s in rows}
+    shown = set()
     for size in sorted(sizes | {None}, key=lambda v: v or 0):
         mine = ours(size)
-        if mine:
+        if mine and mine["requests"] not in shown:
+            shown.add(mine["requests"])
             rows.append((f"ours: LFM3 1.7B + LoRA ({mine['requests']})", mine))
     table(rows)
     if len(sizes) > 1:
