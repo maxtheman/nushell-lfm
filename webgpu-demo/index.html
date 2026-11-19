@@ -46,7 +46,8 @@
     env.allowLocalModels = !remote;
     env.useBrowserCache = remote;  // a local model is not cached: a cached copy would outlive a new export
     env.localModelPath = "./models/";
-    env.backends.onnx.wasm.wasmPaths = new URL("./node_modules/onnxruntime-web/dist/", location.href).href;
+    // config.ort: where ONNX Runtime's WebAssembly files are, for a host that cannot serve them itself
+    env.backends.onnx.wasm.wasmPaths = config.ort || new URL("./node_modules/onnxruntime-web/dist/", location.href).href;
 
     const $ = (id) => document.getElementById(id);
     const [format, environments] = await Promise.all(["prompt_format.json", "environments.json"].map((f) => fetch(f).then((r) => r.json())));

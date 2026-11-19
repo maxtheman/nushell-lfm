@@ -140,16 +140,15 @@ Sweep and placement ablation (200 rows, one epoch, 24 held-out requests; one req
 | convolution only | 71% |
 | attention only | 62% |
 
-Other models on the first 40 held-out requests, with the same system prompt, tool and user text, no examples and no fine-tuning (`mise run eval-endpoint`):
+Other models on all 231 held-out requests, with the same system prompt, tool and user text, no examples and no fine-tuning (`mise run eval-endpoint`):
 
-| Model | Requests | Well-formed | Runs | Returns the reference value |
-|---|---|---|---|---|
-| LFM3 1.7B with the adapter | 40 | 100% | 100% | 95% |
-| gpt-6-luna (reasoning off) | 40 | 100% | 78% | 32.5% |
-| claude-haiku-5-5 | 40 | 100% | 85% | 17.5% |
-| LFM3 1.7B base | 40 | 78% | 48% | 8% |
+| Model | Requests | Well-formed | Runs | Returns the reference value | 95% interval | Seconds per request |
+|---|---|---|---|---|---|---|
+| LFM3 1.7B with the adapter | 231 | 100% | 98% | 92.6% (214) | 88.5–95.4% | 1.18 |
+| gpt-6-luna (reasoning off) | 231 | 100% | 74% | 22.1% (51) | 17.2–27.9% | 2.05 |
+| claude-haiku-5-5 | 231 | 100% | 90% | 13.0% (30) | 9.3–17.9% | 1.10 |
 
-The comparison is on this dataset's own convention: one reference value per request, compared exactly. A call that answers the request in another shape counts as wrong, which the fine-tuned model has learned to avoid and the others have not been shown.
+The comparison is on this dataset's own convention: one reference value per request, compared exactly. A call that answers the request in another shape counts as wrong, which the fine-tuned model has learned to avoid and the others have not been shown. Times are not like for like: ours is generation on one Mac with MLX, the others are whole requests to a hosted endpoint.
 
 **What the held-out score measures.** No environment is shared between training and held-out data. Within the 77 held-out chains, 15 have a command identical to a training command (the project differs, the command happens not to), 50 follow a chain pattern that also occurs in training, and 27 are new combinations of familiar steps.
 

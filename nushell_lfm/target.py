@@ -308,6 +308,40 @@ def run_target_pipeline(cfg: dict, dataset: dict, log=print) -> dict:
     log("[target] executed-correct on held-out requests: " + ", ".join(f"{k} {v['correct']:.0%}" for k, v in report["execution"].items()))
     return report
 
+def time_saved_target(dataset: dict, log=print) -> dict:
+    """How long the saved adapter takes to write a call, over every held-out request (generation only, after one
+    warm-up call; the model is already loaded). Added to `runs/target/report.json` as `timing`."""
+    import mlx.core as mx
+
+    report = json.loads((TARGET_DIR / "report.json").read_text(encoding="utf-8"))
+    cfg = report["config"]
+    rows = spread(dataset["target"]["dev"])
+    model, tokenizer, lm, layers, _ = _load(cfg, cfg["seed"])
+    try:
+        lm.load_weights(str(TARGET_DIR / "adapter_good.safetensors"), strict=False)
+        generate(lm, tokenizer, rows[0], cfg["max_new"])
+        seconds, tokens, outputs = [], 0, []
+        for done, row in enumerate(rows, 1):
+            started = time.perf_counter()
+            text = generate(lm, tokenizer, row, cfg["max_new"])
+            seconds.append(time.perf_counter() - started)
+            tokens += len(tokenizer.encode(text, add_special_tokens=False))
+            outputs.append(text)
+            if done % 40 == 0 or done == len(rows):
+                log(f"[target] timing: {done}/{len(rows)}")
+    finally:
+        del model, lm, layers
+        gc.collect()
+        mx.clear_cache()
+    ordered = sorted(seconds)
+    report["timing"] = {
+        "requests": len(rows), "seconds_per_request": round(sum(seconds) / len(seconds), 2), "median_seconds": round(ordered[len(ordered) // 2], 2),
+        "slowest_seconds": round(ordered[-1], 2), "tokens_per_second": round(tokens / sum(seconds), 1),
+        "correct": _rate([score_call(t, r) for t, r in zip(outputs, rows)]), "where": "MLX, 8-bit base + adapter, one request at a time",
+    }
+    (TARGET_DIR / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return report["timing"]
+
 def score_saved_target(dataset: dict, log=print) -> dict:
     """Score the saved adapter again on every held-out request that took no part in choosing its settings or
     in the report's comparison with the base model, and put the result in `runs/target/report.json` as

@@ -4,7 +4,7 @@
     mise run smoke                       # 8 rows, 4 held-out requests; written to runs/smoke (about two minutes)
     mise run train                       # the adapter at the chosen settings, scored on every held-out request
     mise run train -- --preset protocol  # sweep over rank and learning rate, placement ablation, final adapter
-    mise run train -- --only export      # one stage: train, score, export or activation
+    mise run train -- --only export      # one stage: train, score, time, export or activation
 
 Stages after training: `score` executes the saved adapter's calls on the held-out requests it was not compared
 on, `export` adds the adapter to the 4-bit ONNX build for the browser and checks it, `activation` captures what
@@ -31,7 +31,7 @@ SMOKE = {"n_good": 8, "n_eval": 4, "n_loss": 4, "epochs": 1, "score_all": False}
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--preset", choices=["smoke", "standard", "protocol"], default="standard")
-    parser.add_argument("--only", choices=["train", "score", "export", "activation"])
+    parser.add_argument("--only", choices=["train", "score", "time", "export", "activation"])
     args = parser.parse_args()
 
     from nushell_lfm import model_view
@@ -39,7 +39,7 @@ def main() -> int:
     from nushell_lfm.dataset import save_dataset
     from nushell_lfm.export import BROWSER_DIR, check_browser_export, export_for_browser, write_browser_requests
     from nushell_lfm.pipeline import build
-    from nushell_lfm.target import TARGET_DIR, run_target_experiments, run_target_pipeline, score_call, score_saved_target, spread, target_prompt
+    from nushell_lfm.target import TARGET_DIR, run_target_experiments, run_target_pipeline, score_call, score_saved_target, spread, target_prompt, time_saved_target
 
     built = build()
     dataset = built["dataset"]
@@ -62,6 +62,8 @@ def main() -> int:
     if args.only == "score":
         rest = score_saved_target(dataset, print)
         print("on the held-out requests used for nothing else:", json.dumps({k: v for k, v in rest.items() if k != "wrong"}, indent=1))
+    if args.only == "time":
+        print("seconds per request:", json.dumps(time_saved_target(dataset, print), indent=1))
     if args.only in (None, "export"):
         report = json.loads((TARGET_DIR / "report.json").read_text())
         rows = spread(dataset["target"]["dev"])

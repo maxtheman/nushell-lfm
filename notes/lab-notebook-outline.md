@@ -12,7 +12,7 @@ Numbers are in `results-tables.md`; the longer notes with charts are in `lab-not
 
 - 214 of 231 held-out requests correct (92.6%); base model 3 of 40 (8%). Table 1.
 - 176 of 191 on the requests used for nothing else; per environment 88–98%.
-- Same 40 requests through two hosted models: 32.5% and 17.5%. Table 2.
+- The same 231 requests through two hosted models: 22.1% and 13.0%. Table 2.
 - Chart: `charts/1-executed-correct.png`.
 
 ## 3. How the data is made
@@ -55,4 +55,3 @@ Numbers are in `results-tables.md`; the longer notes with charts are in `lab-not
 ## 8. Open items
 
 - Cross-fitted `P_bad` and combined guidance.
-- Hosted models on all 231 requests (40 so far).

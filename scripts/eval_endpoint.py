@@ -243,7 +243,8 @@ def ours(limit: int | None) -> dict | None:
     if limit == n or not rest:
         return {"requests": n, **{k: first[k] for k in ("well_formed", "runs", "correct")}}
     m = rest["rows"]
-    return {"requests": n + m, **{k: (first[k] * n + rest[k] * m) / (n + m) for k in ("well_formed", "runs", "correct")}}
+    timing = report.get("timing") or {}  # measured on this machine with MLX, over all held-out requests
+    return {"requests": n + m, **{k: (first[k] * n + rest[k] * m) / (n + m) for k in ("well_formed", "runs", "correct")}, "seconds_per_request": timing.get("seconds_per_request")}
 
 
 def table(rows: list[tuple[str, dict]]) -> None:

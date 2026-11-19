@@ -25,20 +25,20 @@ Adapter: LoRA on all linear layers, rank 8, α 16, learning rate 2e-4, batch 4, 
 
 (The 191 requests used for nothing else.)
 
-## 2. Other models, same 40 requests
+## 2. Other models, all 231 held-out requests
 
 Same system prompt, tool definition and user text; no examples; no fine-tuning.
 
-| Model | Well-formed | Runs | Correct | Count | Seconds per request |
-|---|---|---|---|---|---|
-| LFM3 1.7B with the adapter | 100% | 100% | 95% | 38 of 40 | |
-| gpt-6-luna, reasoning off | 100% | 78% | 32.5% | 13 of 40 | 2.2 |
-| claude-haiku-5-5 | 100% | 85% | 17.5% | 7 of 40 | 1.2 |
-| LFM3 1.7B base | 78% | 48% | 8% | 3 of 40 | |
+| Model | Well-formed | Runs | Correct | Count | 95% interval | Seconds per request |
+|---|---|---|---|---|---|---|
+| LFM3 1.7B with the adapter | 100% | 98% | 92.6% | 214 of 231 | 88.5–95.4% | 1.18 |
+| gpt-6-luna, reasoning off | 100% | 74% | 22.1% | 51 of 231 | 17.2–27.9% | 2.05 |
+| claude-haiku-5-5 | 100% | 90% | 13.0% | 30 of 231 | 9.3–17.9% | 1.10 |
 
 - One reference value per request, compared exactly. A call that answers in another shape counts as wrong.
 - gpt-6-luna does not accept function tools with reasoning on at this endpoint; it ran with `reasoning_effort: "none"`.
-- 40 requests: the 95% interval on one score is about ±13 points.
+- On the first 40 requests alone the two hosted models had scored 32.5% and 17.5%; those 40 are one request per chain from two of the four held-out projects.
+- Times are not like for like: ours is generation on one Mac with MLX, the others are whole requests to a hosted endpoint.
 
 ## 3. Sweep and placement
 
