@@ -37,7 +37,7 @@ Numbers are in `results-tables.md`; the longer notes with charts are in `lab-not
 - Sweep over rank and learning rate, then adapter placement, each chosen by executed-correct on 24 requests. Table 3, chart `charts/3-sweep-and-ablation.png`.
 - With 24 requests, only the gap between 75% and 42% is outside noise.
 - Data size: 72% with 162 chains, 92% with 401 chains (two runs, different held-out environments). Chart `charts/2-data-size.png`.
-- Final adapter: 825 rows × 2 epochs, 50 minutes, 3.5 GB peak.
+- Final adapter: 825 rows × 2 epochs, 414 updates, 3.5 GB peak. The run took 50 minutes including the guidance experiments.
 
 ## 6. Export and browser
 

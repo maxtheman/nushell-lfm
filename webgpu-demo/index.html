@@ -14,7 +14,7 @@
     .line { white-space: pre-wrap; overflow-wrap: anywhere; }
     .out { white-space: pre; overflow-x: auto; line-height: 1.2; scrollbar-width: thin; scrollbar-color: var(--term-line) transparent; }
     .dim { color: var(--term-dim); }
-    .banner { white-space: pre; line-height: 1.15; color: var(--nu); }
+    .intro { max-width: 78ch; margin-bottom: 0.6em; } .intro a { color: var(--nu); }
     .choice { cursor: pointer; } .choice:hover { color: #fff; } .choice b { color: var(--ask); font-weight: 400; }
     .who-ask { color: var(--ask); } .who-nu { color: var(--nu); } .err { color: var(--err); } .good { color: var(--ok); }
     .inputrow { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--term-line); padding: 12px 24px; }
@@ -197,19 +197,27 @@
     $("mode").addEventListener("click", () => { setMode(state.mode === "ask" ? "nu" : "ask"); $("input").focus(); });
 
     // ---- start ------------------------------------------------------------------------------------
-    const BANNER = String.raw`
- _   _                 _          _ _
-| \ | |_   _       ___| |__   ___| | |
-|  \| | | | |_____/ __| '_ \ / _ \ | |
-| |\  | |_| |_____\__ \ | | |  __/ | |
-|_| \_|\__,_|     |___/_| |_|\___|_|_|`;
     state.env = environments[0];
     nu.set_files(JSON.stringify(state.env.files));
     nu.session_reset();
     // a few held-out requests to try: short ones, each from a different kind of chain
     state.choices = state.env.requests.filter((r) => r.request.length < 110 && !/rewrite|one line|exactly as written/i.test(r.request)).filter((_, i) => i % 7 === 0).slice(0, 5);
     const top = entry();
-    line(top, BANNER.slice(1), "banner");
+    // What this page is and how to use it. The three project links come from config.json ("links");
+    // one that is not set yet is shown as plain words.
+    const intro = line(top, "", "intro");
+    const links = config.links || {};
+    const link = (text, url) => {
+      if (!url) return document.createTextNode(text);
+      const a = document.createElement("a");
+      a.href = url; a.target = "_blank"; a.rel = "noopener"; a.textContent = text;
+      return a;
+    };
+    intro.append(
+      "This is a demo of the LFM3 fine-tune. Type in plain English below and LFM will drive the terminal for you. Here's a link to ",
+      link("the training process notebook", links.notebook), ", to ", link("the model on Hugging Face", links.model), " and to ", link("GitHub", links.github),
+      ". Tweet ", link("@max_takeoff", "https://x.com/max_takeoff"), " with questions on X, or ", link("growth.wtf", "https://bsky.app/profile/growth.wtf"), " on Bluesky with feedback!",
+    );
     const list = entry();
     state.choices.forEach((r, i) => {
       const el = line(list, "", "choice");

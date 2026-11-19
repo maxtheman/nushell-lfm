@@ -40,19 +40,33 @@ def _():
 
 
 @app.cell
-def _(DEMO_PORT, MODELS_DIR, MODEL_FOLDERS, ROOT, demo_notes, mo, nu_path, row):
+def _(DEMO_PORT, MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, demo_notes, json, mo, nu_path, row):
     _ready = [("Nushell", bool(nu_path)), ("LFM3 checkpoint", (MODELS_DIR / MODEL_FOLDERS["target"] / "config.json").exists())]
     _missing = [name for name, ok in _ready if not ok]
     _gif = ROOT / "assets" / "usage.gif"
+    # The header states the results, read from the saved reports (nothing is shown for a part that is missing).
+    _points = []
+    _file = RUNS_DIR / "target" / "report.json"
+    if _file.exists():
+        _r = json.loads(_file.read_text(encoding="utf-8"))
+        _n, _base, _good, _rest = _r["rows"]["eval"], _r["execution"]["base"]["correct"], _r["execution"]["P_good"]["correct"], _r.get("unused_held_out")
+        _points.append(f"**Before training:** {_base:.0%} of {_n} held-out requests.")
+        _all = f", and {(_good * _n + _rest['correct'] * _rest['rows']) / (_n + _rest['rows']):.1%} of all {_n + _rest['rows']}" if _rest else ""
+        _points.append(f"**After training:** {_good:.0%} of the same {_n}{_all}.")
+        _others = [json.loads(f.read_text(encoding="utf-8")) for f in sorted((RUNS_DIR / "providers").glob("*.json"))]
+        _others = sorted((o for o in _others if o.get("dataset") == _r["dataset"]), key=lambda o: -o["summary"]["correct"])
+        if _others:
+            _points.append("**Other models:** " + ", ".join(f"{o['name']} {o['summary']['correct']:.1%} of {o['summary']['requests']}" for o in _others) + ".")
+        _c = _r["config"]
+        _points.append(
+            f"**Training:** one LoRA of rank {_c['rank']} on {_c['placement'].replace('_', ' ')} layers ({_r['trainable_parameters'] / 1e6:.1f} M parameters), "
+            f"{_r['rows']['fit']} rows × {_c['epochs']} epochs, {max(h['step'] for h in _r['history'] if h['adapter'] == 'P_good')} updates, on a Mac with MLX."
+        )
+    _points.append("**In this notebook:** the generated environments, the command chains and requests, the training run, the model in 3D with and without its LoRA, and the comparison with other models.")
     _intro = mo.md(
-        """
-        # Teaching a small model to drive Nushell
-
-        LFM3 1.7B is fine-tuned on a Mac, offline, to turn a plain request into a `run_nushell` tool call, on data
-        this notebook generates from scratch. Project environments are generated from seeds, command chains are
-        sampled from Nushell's own command signatures and kept only if they run, and the requests are written by
-        the base model. Every score comes from executing the model's calls in environments it never saw.
-        """
+        "# Teaching a small model to drive Nushell\n\n"
+        "LFM3 1.7B turns a plain request into one `run_nushell` tool call. A call counts only if running it returns the reference value.\n\n"
+        + "\n".join(f"- {point}" for point in _points)
     )
     _side = (
         mo.image(src=str(_gif), rounded=True, width="100%")

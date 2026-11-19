@@ -26,9 +26,36 @@ Nothing is uploaded yet.
 
 ## Needed before upload
 
-- Repository names for the adapter, the ONNX build, the dataset and the Spaces.
-- Public or private for each.
-- The GitHub repository name.
+Names and visibility
+
+1. GitHub: account or organisation, repository name, public from the start or private first.
+2. Hugging Face names for: the LoRA adapter, the ONNX build the browser loads, the dataset, the demo Space, and the runner-only Space (if wanted).
+3. Public or private for each of those at first.
+
+What goes up
+
+4. The LoRA adapter and the ONNX build: both, or only one.
+5. The dataset: only the 1,203 request rows, or also the generated environments (seeds are enough to regenerate them).
+6. The experiments' artefacts on Hugging Face (grader adapter, grader rows with breaks), or only their code on GitHub.
+7. Saved results in the repository: `runs/` is not committed. The reports behind the README numbers and the two provider result files could be committed under `results/`, or stay out.
+8. A runner-only Space (Nushell in WebAssembly, no model): yes or no.
+
+Where things are hosted
+
+9. The demo: Hugging Face static Space, or your own domain, or both.
+10. "The training process notebook" link in the demo: a read-only export of the notebook hosted somewhere (where), or the notebook file on GitHub.
+11. The lab notes: where they are published, and whether the repository links to them.
+
+Text and credit
+
+12. The lab-notes draft, to work the results into.
+13. Author name and contact as they should appear on the model card, the dataset card and the README.
+14. How the base model is named and linked on the cards.
+
+Timing
+
+15. Wait for the 2-bit and cross-fit results, or publish now and add them later.
+16. Whether the hosted models are run on all 231 requests first (40 so far).
 
 ## In the repository, not code
 

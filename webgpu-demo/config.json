@@ -1,3 +1,4 @@
 {
-  "model": "nushell-lfm3-1.7b"
+  "model": "nushell-lfm3-1.7b",
+  "links": { "notebook": "", "model": "", "github": "" }
 }

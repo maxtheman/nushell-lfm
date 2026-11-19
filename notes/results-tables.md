@@ -12,7 +12,7 @@ Dataset `a23bbb10902d`: 20 generated environments, 401 verified chains, 3 reques
 | With the adapter, all held-out requests | 231 | 100% | 98% | 92.6% | 214 of 231 |
 | With the adapter, 6 faulty requests left out | 225 | | | 95.1% | 214 of 225 |
 
-Adapter: LoRA on all linear layers, rank 8, α 16, learning rate 2e-4, batch 4, 825 rows × 2 epochs, 8.2 M trainable parameters. Training and the first scoring pass took 50 minutes; peak memory 3.5 GB.
+Adapter: LoRA on all linear layers, rank 8, α 16, learning rate 2e-4, batch 4, 825 rows × 2 epochs, 8.2 M trainable parameters. 414 updates. Peak memory 3.5 GB. The run that produced it took 50 minutes, which includes the guidance experiments that ran with it.
 
 | Held-out environment | Requests | Correct |
 |---|---|---|
