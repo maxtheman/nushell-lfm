@@ -5,83 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Nushell assistant</title>
   <style>
-    :root {
-      color-scheme: light dark;
-      --page: #f4f3ef; --ink: #1f2328; --muted: #646b73; --line: #d5d3cc;
-      --term: #14161a; --term-ink: #d7dae0; --term-dim: #8b929c; --term-line: #2a2e35;
-      --ask: #e0a84b; --nu: #6cc08b; --err: #ef8a62; --ok: #6cc08b;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root { --page: #0e0f12; --ink: #e3e5e8; --muted: #9299a3; --line: #2a2e35; }
-    }
+    :root { --term: #14161a; --term-ink: #d7dae0; --term-dim: #8b929c; --term-line: #2a2e35; --ask: #e0a84b; --nu: #6cc08b; --err: #ef8a62; --ok: #6cc08b; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    html, body { height: 100%; }
-    main { max-width: 1500px; margin: 0 auto; padding: 16px 16px 12px; height: 100%; display: flex; flex-direction: column; }
-    h1 { font-size: 1.35rem; margin: 0 0 4px; }
-    .lead { color: var(--muted); margin: 0 0 16px; max-width: 70ch; }
-    .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 12px; }
-    .bar label { display: grid; gap: 3px; font-size: 0.78rem; color: var(--muted); }
-    select, button { font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
-    button { cursor: pointer; }
-    #status { font-size: 0.82rem; color: var(--muted); margin-left: auto; text-align: right; min-height: 1.3em; }
-    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; flex: 1; min-height: 0; }
-    @media (max-width: 820px) { .layout { grid-template-columns: minmax(0, 1fr); } }
-    .term { background: var(--term); color: var(--term-ink); border-radius: 10px; border: 1px solid var(--term-line); display: flex; flex-direction: column; min-height: 420px; height: 100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    #scroll { flex: 1; overflow: auto; padding: 14px 16px 6px; }
-    .entry { margin-bottom: 10px; }
+    html, body { height: 100%; margin: 0; background: var(--term); }
+    .term { height: 100%; color: var(--term-ink); display: flex; flex-direction: column; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #scroll { flex: 1; overflow: auto; padding: 20px 24px 8px; }
+    .entry { margin-bottom: 12px; }
     .line { white-space: pre-wrap; overflow-wrap: anywhere; }
-    .out { white-space: pre; overflow-x: auto; color: var(--term-ink); line-height: 1.2; scrollbar-width: thin; scrollbar-color: var(--term-line) transparent; }
+    .out { white-space: pre; overflow-x: auto; line-height: 1.2; scrollbar-width: thin; scrollbar-color: var(--term-line) transparent; }
     .dim { color: var(--term-dim); }
+    .banner { white-space: pre; line-height: 1.15; color: var(--nu); }
+    .choice { cursor: pointer; } .choice:hover { color: #fff; } .choice b { color: var(--ask); font-weight: 400; }
     .who-ask { color: var(--ask); } .who-nu { color: var(--nu); } .err { color: var(--err); } .good { color: var(--ok); }
-    .inputrow { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--term-line); padding: 10px 14px; }
-    #mode { font: inherit; border-radius: 5px; padding: 2px 9px; border: 1px solid currentColor; background: transparent; min-width: 4.2em; }
+    .inputrow { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--term-line); padding: 12px 24px; }
+    #mode { font: inherit; border-radius: 5px; padding: 2px 9px; border: 1px solid currentColor; background: transparent; min-width: 4.2em; cursor: pointer; }
     #mode.ask { color: var(--ask); } #mode.nu { color: var(--nu); }
     #input { flex: 1; min-width: 0; font: inherit; color: var(--term-ink); background: transparent; border: 0; outline: 0; }
-    #input::placeholder { color: var(--term-dim); }
-    aside h2 { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin: 2px 0 8px; text-transform: none; }
-    aside { display: flex; flex-direction: column; min-height: 0; }
-    #ideas { display: grid; gap: 6px; overflow: auto; flex: 1; min-height: 120px; align-content: start; }
-    #ideas button { text-align: left; font-size: 0.85rem; line-height: 1.35; }
-    #tree { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: pre; overflow: auto; max-height: 190px; margin: 0 0 16px; }
-    kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+    #status { color: var(--term-dim); font-size: 12px; white-space: nowrap; }
   </style>
 </head>
 <body>
-  <main>
-    <h1>Nushell assistant</h1>
-    <p class="lead">A shell session that runs entirely in this tab. Ask for something in plain words and the fine-tuned model writes the Nushell command, which then runs in the session. Or type Nushell yourself. The model runs on WebGPU; Nushell runs as WebAssembly over an in-memory project.</p>
-
-    <div class="bar">
-      <label>Project <select id="env"></select></label>
-      <label>Model
-        <select id="model">
-          <option value="nushell-lfm3-1.7b">Fine-tuned (P_good merged, 4-bit)</option>
-          <option value="onnx-community/LFM3-1.7B-ONNX">Base model (4-bit)</option>
-        </select>
-      </label>
-      <button id="reset" title="Restore the project files and clear variables">Reset project</button>
-      <div id="status"></div>
+  <div class="term">
+    <div id="scroll" aria-live="polite"></div>
+    <div class="inputrow">
+      <button id="mode" class="ask">ask</button>
+      <input id="input" autocomplete="off" spellcheck="false" />
+      <span id="status"></span>
     </div>
-
-    <div class="layout">
-      <div class="term">
-        <div id="scroll" aria-live="polite"></div>
-        <div class="inputrow">
-          <button id="mode" class="ask" title="Tab switches between asking the model and typing Nushell">ask</button>
-          <input id="input" autocomplete="off" spellcheck="false" placeholder="Ask for something, or press Tab to type Nushell" />
-        </div>
-      </div>
-      <aside>
-        <h2>Files in this project</h2>
-        <pre id="tree"></pre>
-        <h2>Requests the model has not seen</h2>
-        <div id="ideas"></div>
-      </aside>
-    </div>
-    <p class="lead" style="margin:10px 0 0"><kbd>Tab</kbd> switches between <b>ask</b> and <b>nu</b> · <kbd>↑</kbd> <kbd>↓</kbd> history · <code>clear</code> empties the screen</p>
-  </main>
-
+  </div>
   <script type="module">
     import { AutoModelForCausalLM, AutoTokenizer, TextStreamer, env } from "./node_modules/@huggingface/transformers/dist/transformers.min.js";
     import initNu, * as nu from "/nu-wasm/nu_wasm.js";
@@ -176,7 +127,7 @@
 
     async function ask(box, request) {
       const known = state.env.requests.find((r) => r.request === request);
-      const { tokenizer, model } = await load($("model").value);
+      const { tokenizer, model } = await load(MODEL);
       const inputs = tokenizer(buildPrompt(tokenizer, request, known), { add_special_tokens: false });
       status("Writing the command…");
       const typed = prompt(box, "model", "who-nu", "");
@@ -206,10 +157,10 @@
       state.mode = mode;
       $("mode").textContent = mode;
       $("mode").className = mode;
-      $("input").placeholder = mode === "ask" ? "Ask for something, or press Tab to type Nushell" : "Type Nushell, or press Tab to ask the model";
     }
     async function submit(text) {
       if (!text.trim() || state.busy) return;
+      if (state.mode === "ask" && /^[1-9]$/.test(text.trim()) && state.choices[Number(text) - 1]) text = state.choices[Number(text) - 1].request;
       state.history.push(text);
       state.at = state.history.length;
       if (text.trim() === "clear") { $("scroll").textContent = ""; return; }
@@ -241,42 +192,32 @@
     });
     $("mode").addEventListener("click", () => { setMode(state.mode === "ask" ? "nu" : "ask"); $("input").focus(); });
 
-    // ---- project ----------------------------------------------------------------------------------
-    function tree(paths) {
-      const lines = [];
-      let previous = [];
-      for (const path of paths) {
-        const parts = path.split("/");
-        parts.slice(0, -1).forEach((dir, depth) => { if (previous[depth] !== dir) { lines.push("  ".repeat(depth) + dir + "/"); previous = parts.slice(0, depth + 1); } });
-        previous = parts.slice(0, -1);
-        lines.push("  ".repeat(parts.length - 1) + parts.at(-1));
-      }
-      return lines.join("\n");
-    }
-    function openProject(index, announce = true) {
-      state.env = environments[index];
-      nu.set_files(JSON.stringify(state.env.files));
-      nu.session_reset();
-      $("tree").textContent = tree(Object.keys(state.env.files).sort());
-      $("ideas").textContent = "";
-      for (const r of state.env.requests) {
-        const b = document.createElement("button");
-        b.textContent = r.request;
-        b.addEventListener("click", () => { setMode("ask"); $("input").value = r.request; $("input").focus(); });
-        $("ideas").append(b);
-      }
-      if (announce) line(entry(), `Project ${state.env.title}: ${Object.keys(state.env.files).length} files, fresh session.`, "dim");
-    }
-    environments.forEach((e, i) => $("env").add(new Option(e.title, i)));
-    $("env").addEventListener("change", () => openProject($("env").value));
-    $("reset").addEventListener("click", () => openProject($("env").value));
-
-    line(entry(), `Nushell ${nu.nu_version()} (WebAssembly) · model on ${device === "webgpu" ? "WebGPU" : "WebAssembly: this browser has no WebGPU"}\nThe model loads the first time you ask.`, "dim");
-    openProject(0);
-    status("Ready");
+    // ---- start ------------------------------------------------------------------------------------
+    const MODEL = "nushell-lfm3-1.7b";
+    const BANNER = String.raw`
+ _   _                 _          _ _
+| \ | |_   _       ___| |__   ___| | |
+|  \| | | | |_____/ __| '_ \ / _ \ | |
+| |\  | |_| |_____\__ \ | | |  __/ | |
+|_| \_|\__,_|     |___/_| |_|\___|_|_|`;
+    state.env = environments[0];
+    nu.set_files(JSON.stringify(state.env.files));
+    nu.session_reset();
+    // a few held-out requests to try: short ones, each from a different kind of chain
+    state.choices = state.env.requests.filter((r) => r.request.length < 110 && !/rewrite|one line|exactly as written/i.test(r.request)).filter((_, i) => i % 7 === 0).slice(0, 5);
+    const top = entry();
+    line(top, BANNER.slice(1), "banner");
+    const list = entry();
+    state.choices.forEach((r, i) => {
+      const el = line(list, "", "choice");
+      const n = document.createElement("b");
+      n.textContent = `${i + 1}  `;
+      el.append(n, document.createTextNode(r.request));
+      el.addEventListener("click", () => { setMode("ask"); submit(r.request); });
+    });
     $("input").focus();
     if (new URLSearchParams(location.search).has("load")) {  // opened from the notebook: fetch the model straight away
-      load($("model").value).then(() => status(`Model loaded on ${device === "webgpu" ? "WebGPU" : "WebAssembly"} · ready`), (err) => status(`Model failed to load: ${err.message || err}`));
+      load(MODEL).then(() => status(""), (err) => status(`model failed to load: ${err.message || err}`));
     }
     window.demo = { submit, setMode, state };  // for automated checks
   </script>

@@ -133,93 +133,12 @@ def _(MODELS_DIR, MODEL_FOLDERS, ROOT, mo, row, shutil):
 
 @app.cell
 def _(mo):
-    import anywidget as _anywidget
-    import traitlets as _traitlets
+    from nushell_lfm.widgets import StepBar
 
-    class _StepBar(_anywidget.AnyWidget):
-        """The step bar. It sits below the header, sticks to the top of the window once the page scrolls past it,
-        and highlights the step whose section is on screen."""
-
-        _esm = """
-        export default {
-          render({ model, el }) {
-            document.querySelectorAll(".nb-steps, .nb-steps-style").forEach((n) => n.remove());
-            const style = document.createElement("style");
-            style.className = "nb-steps-style";
-            style.textContent = `
-              .nb-steps { position: fixed; z-index: 60; box-sizing: border-box; display: flex; gap: 6px; align-items: center; justify-content: flex-start; flex-wrap: wrap;
-                          padding: 8px 4px; font: 14px/1.3 system-ui, sans-serif; color: CanvasText;
-                          border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-bottom: 1px solid color-mix(in srgb, CanvasText 18%, transparent); }
-              .nb-steps.stuck { padding: 8px 24px; backdrop-filter: blur(10px); background: color-mix(in srgb, Canvas 88%, transparent); border-top-color: transparent; }
-              .nb-steps a { color: inherit; text-decoration: none; padding: 4px 12px; border-radius: 999px; white-space: nowrap; border: 1px solid transparent; transition: background 120ms, color 120ms; }
-              .nb-steps a:hover { border-color: color-mix(in srgb, CanvasText 30%, transparent); }
-              .nb-steps a.on { background: CanvasText; color: Canvas; }
-              .nb-steps span { opacity: 0.45; }
-              @media (max-width: 720px) { .nb-steps { font-size: 12px; gap: 2px; } .nb-steps a { padding: 3px 8px; } .nb-steps.stuck { padding: 6px 10px; } }
-            `;
-            document.head.appendChild(style);
-            const hold = document.createElement("div");
-            hold.style.height = "46px";
-            el.appendChild(hold);
-            const bar = document.createElement("nav");
-            bar.className = "nb-steps";
-            const links = model.get("steps").map(([id, label], i) => {
-              if (i) { const sep = document.createElement("span"); sep.textContent = "›"; bar.appendChild(sep); }
-              const a = document.createElement("a");
-              a.textContent = label;
-              a.href = "#" + id;
-              a.onclick = (e) => {
-                e.preventDefault();
-                const target = document.getElementById(id);
-                if (target) { target.style.scrollMarginTop = "64px"; target.scrollIntoView({ behavior: "smooth", block: "start" }); }
-              };
-              bar.appendChild(a);
-              return [id, a];
-            });
-            document.body.appendChild(bar);
-            let queued = false;
-            const place = () => {
-              if (queued) return;
-              queued = true;
-              requestAnimationFrame(() => {
-                queued = false;
-                hold.style.height = bar.offsetHeight + "px";
-                const r = hold.getBoundingClientRect();
-                const stuck = r.top <= 0;
-                bar.style.top = Math.max(0, r.top) + "px";
-                bar.style.left = (stuck ? 0 : r.left) + "px";
-                bar.style.width = stuck ? "100vw" : r.width + "px";
-                bar.classList.toggle("stuck", stuck);
-                bar.style.paddingLeft = stuck ? Math.max(10, r.left + 4) + "px" : "";  // stay in line with the page column
-                let active = null;
-                for (const [id] of links) {
-                  const target = document.getElementById(id);
-                  if (target && target.getBoundingClientRect().top <= window.innerHeight * 0.25) active = id;
-                }
-                const last = document.getElementById(links[links.length - 1][0]);
-                if (last && last.getBoundingClientRect().top <= window.innerHeight - 160) active = links[links.length - 1][0];
-                for (const [id, a] of links) a.classList.toggle("on", id === active);
-              });
-            };
-            document.addEventListener("scroll", place, { capture: true, passive: true });
-            window.addEventListener("resize", place);
-            const watch = new ResizeObserver(place);
-            watch.observe(hold);
-            place();
-            return () => {
-              watch.disconnect();
-              document.removeEventListener("scroll", place, { capture: true });
-              window.removeEventListener("resize", place);
-              bar.remove();
-              style.remove();
-            };
-          },
-        };
-        """
-        steps = _traitlets.List().tag(sync=True)
-
-    mo.ui.anywidget(
-        _StepBar(
+    # code blocks wrap; nothing on the page scrolls sideways inside a box
+    _wrap = mo.Html("<style>.markdown pre, .markdown pre code, .codehilite pre { white-space: pre-wrap !important; overflow-wrap: anywhere; overflow-x: visible !important; }</style>")
+    _bar = mo.ui.anywidget(
+        StepBar(
             steps=[
                 ["step-env", "1. Env"],
                 ["step-data", "2. Data gen & rephrase"],
@@ -230,6 +149,7 @@ def _(mo):
             ]
         )
     )
+    mo.vstack([_wrap, _bar], gap=0)
     return
 
 
@@ -316,22 +236,20 @@ def _(mo):
         .liveedit-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
         .liveedit-line, .liveedit-kv { white-space: pre-wrap; overflow-wrap: anywhere; }
         .liveedit-loopblock { width: auto; max-width: 100%; overflow-x: auto; }
-        @container (max-width: 640px) {
-          .liveedit-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; height: auto; }
-          .liveedit-code { border-right: 0; border-bottom: 1px solid var(--liveedit-border); max-height: 360px; }
-          .liveedit-trace { max-height: 360px; }
+        /* nothing here scrolls: the card is as tall as its code and its values */
+        .liveedit-card { height: auto !important; overflow: visible; }
+        .liveedit-code, .liveedit-trace, .liveedit-loopblock { max-height: none !important; overflow: visible !important; }
+        @container (max-width: 560px) {
+          .liveedit-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; }
+          .liveedit-code { border-right: 0; border-bottom: 1px solid var(--liveedit-border); }
         }
         """
 
-    # one colour per part of the data pipeline: its heading, and every number that part produces
-    SECTION_COLORS = {"faders": "#0f9d6b", "chains": "#2563eb", "breaks": "#dc2626"}
-
     def heading(text, section=None):
-        color = f' style="color: {SECTION_COLORS[section]};"' if section else ""
-        return mo.md(f"## <span{color}>{text}</span>")
+        return mo.md(f"## {text}")
 
-    def fader(label, low, high, step, value, length=150):
-        return mo.ui.anywidget(Fader(min_value=low, max_value=high, step=step, value=value, label=label, length=length))
+    def fader(label, low, high, step, value, length=150, orientation="vertical"):
+        return mo.ui.anywidget(Fader(min_value=low, max_value=high, step=step, value=value, label=label, length=length, orientation=orientation))
 
     def knob(label, low, high, step, value):
         return mo.ui.anywidget(Knob(min_value=low, max_value=high, step=step, value=value, label=label, size=72))
@@ -340,7 +258,7 @@ def _(mo):
         """Columns that share a row while there is room and stack when there is not.
         Each cell is (item, share of the spare width, width in pixels it needs)."""
         parts = "".join(
-            f'<div style="flex: {grow} 1 {need}px; min-width: 0; max-width: 100%; overflow-x: auto;">{mo.as_html(item).text}</div>' for item, grow, need in cells
+            f'<div style="flex: {grow} 1 {need}px; min-width: 0; max-width: 100%;">{mo.as_html(item).text}</div>' for item, grow, need in cells
         )
         return mo.Html(f'<div style="display: flex; flex-wrap: wrap; gap: {gap}; align-items: {align}; width: 100%;">{parts}</div>')
 
@@ -355,12 +273,12 @@ def _(mo):
     def fval(control) -> float:
         return float(control.widget.value)
 
-    return LiveEdit, SECTION_COLORS, TangleLatex, fader, fval, heading, ival, knob, row, space
+    return LiveEdit, TangleLatex, fader, fval, heading, ival, knob, row, space
 
 
 @app.cell
 def _(fader):
-    env_count_slider = fader("Environments", 2, 24, 1, 20)
+    env_count_slider = fader("Environments", 2, 24, 1, 20, 260, "horizontal")
     return (env_count_slider,)
 
 
@@ -724,106 +642,30 @@ def _(
 @app.cell
 def _(build_environments, env_count_slider, ival, mo):
     environments = build_environments(ival(env_count_slider))
-    env_picker = mo.ui.dropdown(options={e["title"]: e["id"] for e in environments}, value=environments[0]["title"], label="Environment", full_width=True)
+    env_picker = mo.ui.dropdown(options={e["title"]: e["id"] for e in environments}, value=environments[0]["title"], label="Environment")
     return env_picker, environments
 
 
 @app.cell
 def _(DEMO_PORT, ROOT, env_picker, environments, mo):
-    import anywidget
-    import traitlets
-
-    class NuRepl(anywidget.AnyWidget):
-        """A Nushell session in the page: Nushell compiled to WebAssembly (nu-wasm/) over an in-memory copy of the
-        environment. Variables, the current directory and written files persist until the environment changes."""
-
-        _esm = """
-        export default {
-          async render({ model, el }) {
-            el.innerHTML = `<div class="repl"><div class="scroll"></div>
-              <div class="line"><span class="prompt">~ ❯</span><input spellcheck="false" autocomplete="off" placeholder="Loading Nushell…" disabled /></div></div>`;
-            const scroll = el.querySelector(".scroll"), input = el.querySelector("input"), prompt = el.querySelector(".prompt");
-            let nu;
-            try {
-              nu = await import(model.get("base") + "nu_wasm.js");
-              await nu.default();
-            } catch (err) {
-              input.placeholder = "Nushell failed to load — build it with: mise run build-wasm";
-              return;
-            }
-            const say = (text, cls) => { const d = document.createElement("div"); d.className = cls; d.textContent = text; scroll.append(d); scroll.scrollTop = scroll.scrollHeight; };
-            const where = () => JSON.parse(nu.session_run("pwd")).stdout.replace(/^\\/workspace/, "~") || "~";
-            const open = () => {
-              nu.set_files(JSON.stringify(model.get("files")));
-              nu.session_reset();
-              scroll.textContent = "";
-              say(`Nushell ${nu.nu_version()} · WebAssembly · ${Object.keys(model.get("files")).length} files · try: ${model.get("hint")}`, "dim");
-              prompt.textContent = "~ ❯";
-            };
-            const history = []; let at = 0;
-            input.disabled = false; input.placeholder = "type Nushell and press Enter";
-            input.addEventListener("keydown", (e) => {
-              if (e.key === "Enter" && input.value.trim()) {
-                const code = input.value; input.value = ""; history.push(code); at = history.length;
-                if (code.trim() === "clear") { scroll.textContent = ""; return; }
-                say(`${prompt.textContent} ${code}`, "cmd");
-                const result = JSON.parse(nu.session_run(code));
-                const text = result.ok ? result.stdout : result.stderr;
-                if (text) say(text, result.ok ? "out" : "err");
-                if (result.changed.length) say(`wrote ${result.changed.join(", ")}`, "dim");
-                prompt.textContent = `${where()} ❯`;
-              } else if (e.key === "ArrowUp" && at > 0) { e.preventDefault(); input.value = history[--at]; }
-              else if (e.key === "ArrowDown") { e.preventDefault(); at = Math.min(history.length, at + 1); input.value = history[at] ?? ""; }
-            });
-            model.on("change:files", open);
-            open();
-          },
-        };
-        """
-        _css = """
-        .repl { background: #14161a; color: #d7dae0; border-radius: 8px; border: 1px solid #2a2e35; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
-        .repl .scroll { max-height: 300px; min-height: 64px; overflow: auto; padding: 10px 14px 4px; }
-        .repl .out { white-space: pre; line-height: 1.2; overflow-x: auto; }
-        .repl .err { white-space: pre-wrap; color: #ef8a62; }
-        .repl .cmd { color: #6cc08b; white-space: pre-wrap; margin-top: 4px; }
-        .repl .dim { color: #8b929c; white-space: pre-wrap; }
-        .repl .line { display: flex; gap: 8px; align-items: center; border-top: 1px solid #2a2e35; padding: 8px 14px; }
-        .repl .prompt { color: #6cc08b; white-space: nowrap; }
-        .repl input { flex: 1; min-width: 0; font: inherit; color: inherit; background: transparent; border: 0; outline: 0; }
-        """
-        files = traitlets.Dict().tag(sync=True)
-        hint = traitlets.Unicode().tag(sync=True)
-        base = traitlets.Unicode().tag(sync=True)  # where the WebAssembly build is served from
 
     shown_env = next(e for e in environments if e["id"] == env_picker.value)
     _layout = shown_env["layout"]
-    wasm_built = (ROOT / "public" / "nu-wasm" / "nu_wasm_bg.wasm").exists()
-    nu_repl = mo.ui.anywidget(
-        NuRepl(files=shown_env["files"], hint=f"ls {_layout['dirs']['src']} | sort-by size --reverse", base=f"http://localhost:{DEMO_PORT}/nu-wasm/")
-    )
-    return nu_repl, shown_env, wasm_built
+    return (shown_env,)
 
 
 @app.cell
-def _(GENERATOR_SCOPE, LiveEdit, env_count_slider, env_picker, function_source, mo, nu_repl, render_tree, row, shown_env, space, wasm_built):
+def _(GENERATOR_SCOPE, LiveEdit, env_count_slider, env_picker, function_source, mo, render_tree, row, shown_env, space):
     # The code shown is the generator itself, running for the selected seed: each line carries the value it produced.
-    _code = LiveEdit(function_source("environment_layout"), args=(shown_env["layout"]["seed"],), function_name="environment_layout", globalns=GENERATOR_SCOPE, height=440)
+    _code = LiveEdit(function_source("environment_layout"), args=(shown_env["layout"]["seed"],), function_name="environment_layout", globalns=GENERATOR_SCOPE)
     mo.vstack(
         [
             space(56, "step-env"),
             mo.md("## Target environment generation"),
-            row(
-                (mo.vstack([env_count_slider, env_picker], align="center", gap=1), 0, 230),
-                (mo.ui.anywidget(_code), 6, 520),
-                (mo.plain_text(render_tree(list(shown_env["files"]))), 1, 190),
-            ),
-            row(
-                (mo.md("**nu repl**"), 0, 64),
-                (nu_repl if wasm_built else mo.callout(mo.md("The WebAssembly build is missing. Run `mise run build-wasm`."), kind="warn"), 1, 320),
-                align="center", gap="8px 16px",
-            ),
+            mo.hstack([env_count_slider, env_picker], justify="start", align="end", gap=3, wrap=True),
+            row((mo.ui.anywidget(_code), 1, 620), (mo.plain_text(render_tree(list(shown_env["files"]))), 0, 190)),
         ],
-        gap=1.25,
+        gap=1.5,
     )
     return
 
@@ -855,13 +697,13 @@ def _(ROOT, json):
 
 @app.cell
 def _(ALL_CATEGORIES, fader, mo):
-    category_selector = mo.ui.multiselect(options=ALL_CATEGORIES, value=ALL_CATEGORIES, label="Categories", full_width=True)
-    chains_total_slider = fader("Chains", 20, 400, 20, 400, 110)
-    ported_share_slider = fader("Unix-steered", 0.0, 0.3, 0.05, 0.25, 110)
-    length_bias_slider = fader("Longer chains", 0.0, 1.0, 0.1, 0.5, 110)
-    breaks_per_chain_slider = fader("Breaks / chain", 1, 10, 1, 4, 110)
-    k_variants_slider = fader("Requests / chain", 1, 6, 1, 3, 110)
-    return breaks_per_chain_slider, category_selector, chains_total_slider, k_variants_slider, length_bias_slider, ported_share_slider
+    category_boxes = mo.ui.array([mo.ui.checkbox(value=True, label=name.replace("_", " ")) for name in ALL_CATEGORIES])
+    chains_total_slider = fader("Chains", 20, 400, 20, 400, 120)
+    ported_share_slider = fader("Unix-steered", 0.0, 0.3, 0.05, 0.25, 120)
+    length_bias_slider = fader("Longer chains", 0.0, 1.0, 0.1, 0.5, 120)
+    breaks_per_chain_slider = fader("Breaks / chain", 1, 10, 1, 4, 120)
+    k_variants_slider = fader("Requests / chain", 1, 6, 1, 3, 120)
+    return breaks_per_chain_slider, category_boxes, chains_total_slider, k_variants_slider, length_bias_slider, ported_share_slider
 
 
 @app.cell
@@ -1487,55 +1329,79 @@ def _(NU_COMMANDS, OPTIONAL_KEYS, ROOT, json, random, run_nu_many, same_output, 
 
 
 @app.cell
+def _(ALL_CATEGORIES, build_chains, category_boxes, chains_total_slider, environments, fval, ival, length_bias_slider, ported_share_slider):
+    selected_categories = [name for name, on in zip(ALL_CATEGORIES, category_boxes.value) if on] or list(ALL_CATEGORIES)
+    verified_chains, dropped_chains, chain_summary = build_chains(
+        environments, selected_categories, ival(chains_total_slider), fval(ported_share_slider), fval(length_bias_slider)
+    )
+    return chain_summary, selected_categories, verified_chains
+
+
+@app.cell
+def _(COMMAND_CATALOG, Counter, mo, selected_categories, verified_chains):
+    # One tab per category, and one for the full list the chains are sampled from. The tab picks what the table shows.
+    _mix = Counter(c["category"] for c in verified_chains)
+    CATALOG_TAB = f"all commands ({len(COMMAND_CATALOG)})"
+    chain_tab_names = {f"{name.replace('_', ' ')} ({_mix.get(name, 0)})": name for name in selected_categories}
+    chain_tabs = mo.ui.tabs({**{label: "" for label in chain_tab_names}, CATALOG_TAB: ""})
+    return CATALOG_TAB, chain_tab_names, chain_tabs
+
+
+@app.cell
+def _(CATALOG_TAB, COMMAND_CATALOG, NATIVE, PORTED, SOURCES, STAGES, chain_tab_names, chain_tabs, mo, pd, verified_chains):
+    if chain_tabs.value == CATALOG_TAB:
+        _reachable = {c for o in SOURCES + STAGES for c in o["commands"]}
+        tab_chains = []
+        chain_table = mo.ui.table(
+            pd.DataFrame(
+                [
+                    {**c, "in the generator": c["name"] in _reachable, "native weight": round(NATIVE.get(c["name"], 0.0), 4), "ported weight": round(PORTED.get(c["name"], 0.0), 4)}
+                    for c in COMMAND_CATALOG
+                ]
+            ),
+            selection=None, page_size=8,
+        )
+    else:
+        tab_chains = [c for c in verified_chains if c["category"] == chain_tab_names.get(chain_tabs.value)]
+        chain_table = mo.ui.table(
+            pd.DataFrame([{"request": c["asks"][0], "command": c["code"], "steps": len(c["spec"]["steps"]), "prior": c["origin"]} for c in tab_chains]),
+            selection="single", page_size=8,
+        )
+    return chain_table, tab_chains
+
+
+@app.cell
+def _(chain_table, tab_chains, verified_chains):
+    # The chain in focus: the row clicked in the table, else the first chain with three steps or more.
+    _picked = chain_table.value
+    _row = int(_picked.index[0]) if tab_chains and _picked is not None and len(_picked) else None
+    selected_chain = tab_chains[_row] if _row is not None and _row < len(tab_chains) else next(c for c in verified_chains if len(c["spec"]["steps"]) >= 3)
+    return (selected_chain,)
+
+
+@app.cell
 def _(
-    COMMAND_CATALOG,
-    Counter,
-    NATIVE,
-    PORTED,
-    SOURCES,
-    STAGES,
     breaks_per_chain_slider,
-    build_chains,
-    category_selector,
+    category_boxes,
+    chain_table,
+    chain_tabs,
     chains_total_slider,
-    environments,
-    fval,
-    ival,
-    heading,
+    json,
     k_variants_slider,
     length_bias_slider,
     mo,
-    pd,
     ported_share_slider,
     request_btn,
     row,
+    selected_chain,
     space,
 ):
-    verified_chains, dropped_chains, chain_summary = build_chains(
-        environments, category_selector.value, ival(chains_total_slider), fval(ported_share_slider), fval(length_bias_slider)
-    )
-    _reachable = {c for o in SOURCES + STAGES for c in o["commands"]}
-    _mix = Counter(c["category"] for c in verified_chains)
+    def _value(text):
+        try:
+            return mo.json(json.loads(text))
+        except ValueError:
+            return mo.md(f"```text\n{text[:2000]}\n```")
 
-    def _table(rows):
-        return mo.ui.table(
-            pd.DataFrame([{"request": c["asks"][0], "command": c["code"], "returns": c["expected"][:140], "prior": c["origin"], "steps": len(c["spec"]["steps"])} for c in rows]),
-            selection=None, page_size=8,
-        )
-
-    # the last tab is the full list the chains are sampled from: every built-in command with its inputs and outputs
-    _catalog = pd.DataFrame(
-        [
-            {**c, "in the generator": c["name"] in _reachable, "native weight": round(NATIVE.get(c["name"], 0.0), 4), "ported weight": round(PORTED.get(c["name"], 0.0), 4)}
-            for c in COMMAND_CATALOG
-        ]
-    )
-    _tabs = mo.ui.tabs(
-        {
-            **{f"{name} ({_mix.get(name, 0)})": _table([c for c in verified_chains if c["category"] == name]) for name in category_selector.value},
-            f"all commands ({len(COMMAND_CATALOG)})": mo.ui.table(_catalog, selection=None, page_size=8),
-        }
-    )
     mo.vstack(
         [
             space(56, "step-data"),
@@ -1543,20 +1409,25 @@ def _(
                 (
                     mo.vstack(
                         [
-                            heading("Data faders", "faders"),
-                            mo.hstack([chains_total_slider, ported_share_slider, length_bias_slider, breaks_per_chain_slider, k_variants_slider], justify="start", gap=1, wrap=True),
-                            category_selector,
+                            mo.md("## Data faders"),
+                            mo.hstack([chains_total_slider, ported_share_slider, length_bias_slider, breaks_per_chain_slider, k_variants_slider], justify="start", gap=0.5, wrap=False),
+                            mo.hstack(list(category_boxes), justify="start", gap=0.75, wrap=True),
                             request_btn,
                         ],
-                        gap=1.25,
+                        gap=1.5,
                     ),
-                    1, 330,
+                    0, 470,
                 ),
-                (mo.vstack([heading("Chains", "chains"), _tabs], gap=1.25), 3, 460),
+                (mo.vstack([mo.md("## Chains"), chain_tabs, chain_table], gap=0.75), 1, 440),
             ),
-        ]
+            # the chain in focus, in full
+            mo.md("\n".join(f"> {ask}" for ask in selected_chain["asks"][:1])),
+            mo.md(f"```nu\n{selected_chain['code']}\n```"),
+            _value(selected_chain["expected"]),
+        ],
+        gap=1.25,
     )
-    return chain_summary, verified_chains
+    return
 
 
 @app.cell
@@ -1997,13 +1868,17 @@ def _(OPTIONAL_KEYS, ThreadPoolExecutor, json, re, run_nu, same_output, save_nu_
         """One break, start to finish: the working command, the first broken variant of this type that
         running it confirms, the part that is wrong, and why."""
         before = chain["code"]
-        found = confirmed_breaks(chain, index).get(failure_type)
-        after = found["code"] if found else None
-        span = found["span_text"] if found else None
-        reason = found["note"] if found else "no variant of this type survives execution for this chain"
-        return {"before": before, "after": after, "span": span, "reason": reason}
+        after, span, reason = confirmed_break(chain, index, failure_type)
+        return after is not None
 
-    BREAK_SCOPE = {"confirmed_breaks": confirmed_breaks}
+    def confirmed_break(chain, index, failure_type):
+        """The call, the broken span and the reason of the first variant of this type that execution confirms."""
+        found = confirmed_breaks(chain, index).get(failure_type)
+        if not found:
+            return None, None, "no variant of this type survives execution for this chain"
+        return found["code"], found["span_text"], found["note"]
+
+    BREAK_SCOPE = {"confirmed_break": confirmed_break}
 
     return (
         BREAK_LABELS,
@@ -2018,29 +1893,33 @@ def _(OPTIONAL_KEYS, ThreadPoolExecutor, json, re, run_nu, same_output, save_nu_
 
 
 @app.cell
-def _(BREAK_LABELS, mo, verified_chains):
-    break_chain_picker = mo.ui.dropdown(
-        options={f"{c['chain_id']} · {c['code'][:70]}": i for i, c in enumerate(verified_chains) if len(c["spec"]["steps"]) >= 2},
-        label="Chain", full_width=True, value=next(f"{c['chain_id']} · {c['code'][:70]}" for c in verified_chains if len(c["spec"]["steps"]) >= 3),
-    )
+def _(BREAK_LABELS, mo):
     break_type_picker = mo.ui.dropdown(options=BREAK_LABELS, value="wrong_operation_or_argument", label="Failure type")
-    return break_chain_picker, break_type_picker
+    return (break_type_picker,)
 
 
 @app.cell
-def _(BREAK_SCOPE, LiveEdit, break_chain_picker, break_type_picker, breaks_per_chain_slider, build_samples, function_source, heading, ival, mo, row, space, verified_chains):
+def _(BREAK_SCOPE, LiveEdit, break_type_picker, breaks_per_chain_slider, build_samples, function_source, ival, mo, selected_chain, space, verified_chains):
     samples = build_samples(verified_chains, ival(breaks_per_chain_slider))
-    _chain = verified_chains[break_chain_picker.value]
-    # The break generator, running on the chosen chain: the call before and after, the broken span, and why it is kept.
+
+    class _Chain(dict):
+        """The chain in focus, shown by its id in the live view (its full contents are above)."""
+
+        def __repr__(self):
+            return f"<chain {self['chain_id']}>"
+
+    _index = next(i for i, c in enumerate(verified_chains) if c["chain_id"] == selected_chain["chain_id"])
+    _chain = _Chain({k: selected_chain[k] for k in ("chain_id", "env", "code", "parts", "expected", "expected_variant", "layout", "files", "spec")})
+    # The break generator, running on the chain in focus: the call before and after, the broken span, and why it is kept.
     _live = LiveEdit(
-        function_source("preview_break"), args=({k: _chain[k] for k in ("chain_id", "env", "code", "parts", "expected", "expected_variant", "layout", "files", "spec")}, break_type_picker.value, break_chain_picker.value),
-        function_name="preview_break", globalns=BREAK_SCOPE, height=380, visible_columns=["before", "after", "span", "reason"],
+        function_source("preview_break"), args=(_chain, break_type_picker.value, _index),
+        function_name="preview_break", globalns=BREAK_SCOPE, visible_columns=["before", "after", "span", "reason"],
     )
     mo.vstack(
         [
             space(40),
-            heading("Breaks, before & after", "breaks"),
-            row((break_chain_picker, 1, 260), (break_type_picker, 0, 340), gap="12px 28px", align="flex-end"),
+            mo.md("## Breaks, before & after"),
+            break_type_picker,
             mo.ui.anywidget(_live),
         ],
         gap=1.25,
@@ -2053,7 +1932,7 @@ def _(mo):
     # -------------------------------------------------------------------------
     # Step 5: requests and splits
     # -------------------------------------------------------------------------
-    request_btn = mo.ui.run_button(label="✎ Write requests with LFM3")
+    request_btn = mo.ui.run_button(label="Generate new data")
     return (request_btn,)
 
 
@@ -2268,10 +2147,8 @@ async def _(
     Counter,
     MODEL_FOLDERS,
     PRIOR_INFO,
-    SECTION_COLORS,
     assemble_dataset,
     breaks_per_chain_slider,
-    category_selector,
     chain_summary,
     chains_total_slider,
     environments,
@@ -2287,6 +2164,7 @@ async def _(
     request_btn,
     samples,
     save_dataset,
+    selected_categories,
     space,
     verified_chains,
     write_requests_with_model,
@@ -2307,36 +2185,16 @@ async def _(
         {
             "chains": ival(chains_total_slider), "ported_share": fval(ported_share_slider), "length_bias": fval(length_bias_slider),
             "breaks_per_chain": ival(breaks_per_chain_slider), "requests_per_chain": ival(k_variants_slider),
-            "categories": category_selector.value, "priors": PRIOR_INFO, "chain_summary": chain_summary,
+            "categories": selected_categories, "priors": PRIOR_INFO, "chain_summary": chain_summary,
         },
     )
-    _g, _t = dataset["grader"], dataset["target"]
+    _g = dataset["grader"]
     _kind = Counter("valid" if r["failure_type"] == "valid" else "equivalent" if r["failure_type"] == "grader_false_fail" else "broken" for r in _g["train"] + _g["dev"])
-    _c = SECTION_COLORS
-    _term = lambda n, label, color: (
-        '<span style="display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2;">'
-        f'<b style="font-size: 1.7rem; font-variant-numeric: tabular-nums; color: {color};">{n:,}</b>'
-        f'<small style="opacity: 0.75; white-space: nowrap;">{label}</small></span>'
-    )
-    _op = lambda sign: f'<span style="font-size: 1.5rem; line-height: 2rem; opacity: 0.55;">{sign}</span>'
-    _line = lambda *parts: '<div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 20px; margin: 14px 0;">' + "".join(parts) + "</div>"
-    _by = dataset["requests_by"]
     mo.vstack(
         ([mo.callout(mo.md(f"Request writing failed: `{_error}`"), kind="danger")] if _error else [])
         + [
             space(40),
-            mo.md("## Final data size"),
-            mo.Html(
-                _line(
-                    _term(_kind["valid"], "correct calls", _c["chains"]), _op("+"), _term(_kind["broken"], "broken calls", _c["breaks"]), _op("+"),
-                    _term(_kind["equivalent"], "equivalent answers", _c["breaks"]), _op("="), _term(sum(_kind.values()), "grader rows", "inherit"),
-                )
-                + _line(
-                    _term(len(verified_chains), "chains", _c["chains"]), _op("×"), _term(ival(k_variants_slider), "requests each", _c["faders"]), _op("="),
-                    _term(len(_t["train"]) + len(_t["dev"]), "target rows", "inherit"), _op("="),
-                    _term(_by.get("model", 0), "written by the model", _c["faders"]), _op("+"), _term(_by.get("composed", 0), "composed", _c["faders"]),
-                )
-            ),
+            mo.md(f"## Final data size = {_kind['valid']:,} + {_kind['broken']:,} + {_kind['equivalent']:,} = {sum(_kind.values()):,}"),
         ]
     )
     return (dataset,)
@@ -2914,55 +2772,18 @@ def _(
             )
         )
         _charts = [_loss, _matrix]
-        # guidance, recomputed from the stored log-probabilities as the two weights are dragged
-        _w, _v = grader_tangle.widget.values["w"], grader_tangle.widget.values["v"]
-
-        def _guided(combine):
-            hits, logps = [], []
-            for r in _best["records"]:
-                mixed = np.array(combine(r), dtype=np.float64)
-                mixed = mixed - (np.log(np.exp(mixed - mixed.max()).sum()) + mixed.max())
-                true = FAILURE_LABELS.index(r["true"])
-                hits.append(int(mixed.argmax()) == true)
-                logps.append(float(mixed[true]))
-            return sum(hits) / len(hits), sum(logps) / len(logps)
-
-        _a1, _l1 = _guided(lambda r: np.array(r["logp_base"]) + _w * (np.array(r["logp"]) - np.array(r["logp_base"])))
-        _has_weak = "logp_weak" in _best["records"][0]
-        _a2, _l2 = _guided(lambda r: np.array(r["logp"]) + _v * (np.array(r["logp"]) - np.array(r["logp_weak"]))) if _has_weak else (None, None)
-        _guidance = [
-            space(24),
-            mo.md("## Guidance"),
-            grader_tangle,
-            mo.md(
-                "| | Weight | Perplexity | Log p | Type accuracy |\n|:---|:---|:---|:---|:---|\n"
-                f"| base → adapter | w = {_w:.2f} | {math.exp(-_l1):.2f} | {_l1:.3f} | {_pct(_a1)} |\n"
-                + (f"| weak adapter → adapter | v = {_v:.2f} | {math.exp(-_l2):.2f} | {_l2:.3f} | {_pct(_a2)} |\n" if _has_weak else "")
-            ),
-        ]
     mo.vstack(
         [
             space(56, "step-grader"),
             mo.md("## Train D1"),
             *_notes,
-            row(
-                (
-                    mo.vstack(
-                        [
-                            mo.md("**Faders**"),
-                            mo.hstack([grader_lr, grader_dropout, grader_clip], justify="start", gap=1, wrap=True),
-                            mo.hstack([grader_train_btn, grader_placement, grader_preset], justify="start", gap=1, align="center", wrap=True),
-                        ],
-                        gap=1.25,
-                    ),
-                    0, 330,
-                ),
-                (mo.vstack([mo.md("**Knobs**"), mo.vstack([grader_rank, grader_alpha_mult, grader_batch], gap=1, align="center")], gap=1, align="center"), 0, 130),
-                (mo.vstack(_charts, gap=1.5), 1, 420),
+            mo.hstack(
+                [grader_lr, grader_dropout, grader_clip, grader_rank, grader_alpha_mult, grader_batch, mo.vstack([grader_train_btn, grader_placement, grader_preset], gap=0.75)],
+                justify="start", align="end", gap=1.5, wrap=True,
             ),
-            *_guidance,
+            *([row(*[(chart, 1, 380) for chart in _charts])] if _charts else []),
         ],
-        gap=1.25,
+        gap=1.5,
     )
     return
 
@@ -3805,89 +3626,63 @@ def _(
             )
         )
         _charts = [_loss, mo.ui.tabs({"Execution": _bars, "Calls": mo.ui.table(pd.DataFrame(_r["samples"]), selection=None, page_size=4)})]
-        # guidance: how probable the reference call is under the guided distribution, at the dragged weight
-        _w = float(target_tangle.widget.values["w"])
+        # Guidance, as pictures that follow the dragged weight and the floor fader.
+        _w, _f = float(target_tangle.widget.values["w"]), fval(target_floor)
+        _named = {"P_bad": "P_bad", "bad": "P_bad", "weak P_good": "weak P_good", "weak": "weak P_good", "base": "base"}
+        _visuals = []
         _grid = _r.get("reference_logp") or {}
-        _nearest = lambda table: min(table, key=lambda k: abs(float(k) - _w))
-        _guidance = [space(24), mo.md("## Guidance"), target_tangle]
         if _grid:
-            _guidance.append(
-                mo.md(
-                    "| P_good steered away from | Weight | Perplexity | Log p per token |\n|:---|:---|:---|:---|\n"
-                    + "\n".join(f"| {other} | w = {_nearest(table)} | {math.exp(-table[_nearest(table)]):.3f} | {table[_nearest(table)]:.4f} |" for other, table in _grid.items())
-                )
+            _lines = pd.DataFrame([{"away from": _named.get(other, other), "weight": float(k), "log p": v} for other, table in _grid.items() for k, v in table.items()])
+            _visuals.append(
+                (
+                    alt.Chart(_lines).mark_line(point=True).encode(
+                        x=alt.X("weight:Q", title="weight w"), y=alt.Y("log p:Q", title="log p of the reference call, per token"),
+                        color=alt.Color("away from:N", legend=alt.Legend(orient="bottom", title=None)),
+                    )
+                    + alt.Chart(pd.DataFrame({"weight": [_w]})).mark_rule(strokeDash=[4, 3]).encode(x="weight:Q")
+                ).properties(height=220, width="container")
             )
-        # Why guidance has nothing to work with, from what was measured.
-        _f = fval(target_floor)
-        _wrong = sum(not s["P_good_correct"] for s in _r["samples"])
-        _n = len(_r["samples"])
-        _eps = _wrong / _n
-        _arms = [k[: -len(" correct")] for k in _r["samples"][0] if k.endswith(" correct")]
-        _fixed = lambda arm: sum(s[f"{arm} correct"] and not s["P_good_correct"] for s in _r["samples"])
-        _broke = lambda arm: sum(s["P_good_correct"] and not s[f"{arm} correct"] for s in _r["samples"])
-        _math = [
-            r"At one token, let $a$ be the token $P_{good}$ prefers and $b$ any other. Guided decoding scores",
-            r"$$\log p_w(x) = \log p_{good}(x) + w\,\big[\log p_{good}(x) - \log p_{other}(x)\big] \quad\text{over}\quad \{x : p_{good}(x) \ge f\, p_{good}(a)\},$$",
-            r"so $b$ replaces $a$ only if both of these hold, where $m = \log p_{good}(a) - \log p_{good}(b)$ is how far ahead $a$ is:",
-            r"$$m \le \ln\tfrac{1}{f} \qquad\text{and}\qquad w\,\Big[\log\tfrac{p_{good}(b)}{p_{other}(b)} - \log\tfrac{p_{good}(a)}{p_{other}(a)}\Big] > m .$$",
-        ]
-        if guidance_tokens:
-            _t = guidance_tokens
-            _key = min(_t["with_alternative"], key=lambda k: abs(float(k) - _f))
-            _wk = min((0.25, 0.5, 1.0), key=lambda k: abs(k - _w))
-            _math.append(
-                f"Measured on the {_t['calls']} scored calls ({_t['tokens']:,} tokens, read along the reference call): "
-                rf"the median $m$ is **{_t['margin_quantiles']['0.5']:.1f} nats**, against a limit of $\ln(1/f)$ = {math.log(1 / float(_key)):.1f} at $f$ = {_key}. "
-                f"A second token is within reach at **{_t['with_alternative'][_key]} of {_t['tokens']:,} tokens**; "
-                f"$P_{{good}}$'s first choice differs from the reference token at {_t['top_is_not_reference']}."
+        if guidance_tokens and guidance_tokens.get("margin"):
+            _limit = math.log(1 / _f)
+            _leads = pd.DataFrame({"lead": [min(19.75, m) for m in guidance_tokens["margin"]]})
+            _leads["within reach"] = _leads["lead"] <= _limit
+            _visuals.append(
+                (
+                    alt.Chart(_leads).mark_bar().encode(
+                        x=alt.X("lead:Q", bin=alt.Bin(step=0.5), title="P_good's lead over its runner-up (nats)"), y=alt.Y("count():Q", title="tokens"),
+                        color=alt.Color("within reach:N", legend=None, scale=alt.Scale(domain=[False, True], range=["#2a78d6", "#eb6834"])),
+                    )
+                    + alt.Chart(pd.DataFrame({"lead": [_limit]})).mark_rule(strokeDash=[4, 3]).encode(x="lead:Q")
+                ).properties(height=220, width="container")
             )
-            _math.append(
-                "| Steered away from | Tokens it changes | of those, away from the reference | onto the reference |\n|:---|:---|:---|:---|\n"
-                + "\n".join(
-                    f"| {({'bad': 'P_bad', 'weak': 'weak P_good', 'base': 'base'}).get(other, other)} (w = {_wk}, f = {_key}) | {rec['flips'][f'{_wk}|{_key}']['changed']} | {rec['flips'][f'{_wk}|{_key}']['away_from_reference']} | {rec['flips'][f'{_wk}|{_key}']['onto_reference']} |"
-                    for other, rec in _t["against"].items()
-                )
+            _key = f"{min((0.25, 0.5, 1.0), key=lambda k: abs(k - _w))}|{min((0.03, 0.1, 0.3), key=lambda k: abs(k - _f))}"
+            _moves = pd.DataFrame(
+                [
+                    {"away from": _named.get(other, other), "token moved": kind, "tokens": rec["flips"][_key][field]}
+                    for other, rec in guidance_tokens["against"].items()
+                    for kind, field in (("onto the reference", "onto_reference"), ("away from it", "away_from_reference"))
+                ]
             )
-        if 0 < _wrong < _n:
-            _math.append(
-                rf"On whole calls, $P_{{good}}$ is wrong on {_wrong} of {_n} ($\varepsilon$ = {_eps:.3f}). Guidance gains only if it fixes more calls than it breaks:"
+            _visuals.append(
+                alt.Chart(_moves).mark_bar().encode(
+                    y=alt.Y("away from:N", title=None), x=alt.X("tokens:Q", title=f"tokens guidance changes, of {guidance_tokens['tokens']:,}", axis=alt.Axis(tickMinStep=1)),
+                    color=alt.Color("token moved:N", legend=alt.Legend(orient="bottom", title=None), scale=alt.Scale(domain=["onto the reference", "away from it"], range=["#1baf7a", "#e34948"])),
+                ).properties(height=220, width="container")
             )
-            _math.append(
-                r"$$\varepsilon\,P(\text{fix}\mid\text{wrong}) > (1-\varepsilon)\,P(\text{break}\mid\text{right}) \iff \frac{P(\text{fix}\mid\text{wrong})}{P(\text{break}\mid\text{right})} > \frac{1-\varepsilon}{\varepsilon} = "
-                + f"{(1 - _eps) / _eps:.0f}" + r".$$"
-            )
-            _math.append(
-                rf"$P_{{bad}}$ would have to know where $P_{{good}}$ goes wrong, and it was trained on {_r['rows']['bad_own']} of $P_{{good}}$'s own mistakes "
-                f"among {_r['rows']['bad_own'] + _r['rows']['bad_synthetic']} calls; the other {_r['rows']['bad_synthetic']} are generated breaks, which are mistakes it does not make."
-            )
-            _math.append(
-                "| Decoder | Fixed (of " + str(_wrong) + " wrong) | Broke (of " + str(_n - _wrong) + " right) |\n|:---|:---|:---|\n"
-                + "\n".join(f"| {arm} | {_fixed(arm)} | {_broke(arm)} |" for arm in _arms if arm != "P_good" and arm != "base")
-            )
-        _guidance.append(mo.md("\n\n".join(_math)))
+        _guidance = [space(24), mo.md("## Guidance"), target_tangle] + ([row(*[(chart, 1, 300) for chart in _visuals])] if _visuals else [])
     mo.vstack(
         [
             space(56, "step-target"),
             mo.md("## Train LFM"),
             *_notes,
-            row(
-                (
-                    mo.vstack(
-                        [
-                            mo.md("**Faders**"),
-                            mo.hstack([target_lr, target_floor], justify="start", gap=1, wrap=True),
-                            mo.hstack([target_train_btn, target_placement, target_preset], justify="start", gap=1, align="center", wrap=True),
-                        ],
-                        gap=1.25,
-                    ),
-                    0, 330,
-                ),
-                (mo.vstack([mo.md("**Knobs**"), mo.vstack([target_rank, target_alpha_mult, target_batch], gap=1, align="center")], gap=1, align="center"), 0, 130),
-                (mo.vstack(_charts, gap=1.5), 1, 420),
+            mo.hstack(
+                [target_lr, target_floor, target_rank, target_alpha_mult, target_batch, mo.vstack([target_train_btn, target_placement, target_preset], gap=0.75)],
+                justify="start", align="end", gap=1.5, wrap=True,
             ),
+            *([row(*[(chart, 1, 380) for chart in _charts])] if _charts else []),
             *_guidance,
         ],
-        gap=1.25,
+        gap=1.5,
     )
     return
 

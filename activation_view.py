@@ -718,7 +718,7 @@ _CSS = """
 .lfm3-layer input[type=range] { flex: 1; min-width: 80px; accent-color: #6366f1; }
 .lfm3-layer-badge { white-space: nowrap; min-width: 190px; }
 .lfm3-bar select { font: inherit; color: inherit; background: transparent; border: 1px solid rgba(148,163,184,0.5); border-radius: 6px; padding: 2px 4px; max-width: 100%; }
-.lfm3-stage { position: relative; width: 100%; height: min(560px, 72vh); }
+.lfm3-stage { position: relative; width: 100%; height: min(480px, 64vh); }
 .lfm3-stage canvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 .lfm3-stage canvas:active { cursor: grabbing; }
 .lfm3-setting { position: absolute; top: 6px; left: 8px; pointer-events: none; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; line-height: 1.4; max-width: 60%; }
@@ -732,17 +732,19 @@ _CSS = """
 .lfm3-nav:disabled { opacity: 0.3; cursor: default; }
 .lfm3-carousel { flex: 1; min-width: 0; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; align-items: stretch; position: relative; scroll-snap-type: x mandatory; scroll-behavior: smooth; }
 .lfm3-carousel::-webkit-scrollbar { display: none; }
-.lfm3-card { flex: 0 0 min(520px, 86%); height: 168px; overflow-y: auto; scroll-snap-align: start; border-radius: 8px; border: 1px solid rgba(148,163,184,0.35); padding: 8px 10px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; display: flex; flex-direction: column; gap: 5px; box-sizing: border-box; }
+.lfm3-card { flex: 0 0 min(560px, 86%); scroll-snap-align: start; border-radius: 8px; border: 1px solid rgba(148,163,184,0.35); padding: 10px 12px; font-family: ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
 .lfm3-card.active { border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1; }
-.lfm3-card.inactive { opacity: 0.55; cursor: pointer; overflow: hidden; }
+.lfm3-card.inactive { opacity: 0.55; cursor: pointer; }
 .lfm3-card.inactive:hover { opacity: 1; }
 .lfm3-dots { display: flex; gap: 5px; justify-content: center; padding-top: 6px; }
 .lfm3-dots i { width: 6px; height: 6px; border-radius: 999px; background: rgba(148,163,184,0.5); cursor: pointer; }
 .lfm3-dots i.on { background: #6366f1; }
-.lfm3-row { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.lfm3-row { display: block; font-family: inherit; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lfm3-row.lfm3-code, .lfm3-out { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
+.lfm3-out { opacity: 0.8; }
 .lfm3-tag { font-size: 10px; opacity: 0.7; flex: 0 0 100%; margin-top: 1px; }
 .lfm3-tag b { font-weight: 700; opacity: 1; }
-.lfm3-tok { position: relative; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(148,163,184,0.3); white-space: pre; }
+.lfm3-tok { border-radius: 3px; white-space: pre-wrap; }
 .lfm3-meta { font-size: 10px; opacity: 0.8; line-height: 1.4; white-space: normal; }
 """
 
@@ -893,7 +895,7 @@ function render({ model, el }) {
     const perToken = (o, values, kind) => add({ ...o, wx: TW, nx: nT, kind, perToken: true, grid: { front: [values], top: [values], side: [[0.5]] } });
     const wire = (pts, color = "#94a3b8", alpha = 1, dashed = false) => wires.push({ pts: pts.map(([x, y]) => [x, y, 0]), color, alpha, dashed });
     const node = (x, y, label, alpha = 1) => nodes.push({ x, y, z: D / 2, label, alpha });
-    const label = (x, y, text, o = {}) => labels.push({ x, y, z: D / 2, text, alpha: 1, align: "left", ...o });
+    const label = () => {};  // the picture carries no words: what goes in and what comes out is the text under it
     const tab = (x, y, part, alpha) => { if (adapts(part)) add({ id: "lora", x, y, z: 0.1, wx: 0.12, hy: 0.22, color: "#f59e0b", alpha }); };
     const L = SX - TW / 2 - 0.2, R = SX + TW / 2;                // left and right edges of the whole-model column
 
@@ -1076,12 +1078,9 @@ function render({ model, el }) {
     const padX = 20, padTop = 44, padBottom = 10, fov = 16.0, baseDist = 26.0;
     const pts = [];
     for (const b of scene.boxes) {
-      if (b.id === "margin" || b.id === "push" || b.id === "type_bar" || b.id === "floor") continue;  // the frame does not move when guidance is switched on
       const hx = b.wx / 2, hy = b.hy / 2, hz = b.dz / 2;
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) pts.push([b.x + sx * hx, b.y + sy * hy, (b.z || 0) + sz * hz]);
     }
-    pts.push([SX, slabY(maxLayer()) + 2.6, 0]);  // room for the guidance bars
-    pts.push([SX - TW / 2 - 3.3, Y0, 0]);            // and for the words left of the whole model
     for (const [x, y, z] of pts) {
       const r = rotatePt(x, y, z), persp = fov / Math.max(3.0, baseDist + r.z);
       const px = r.x * persp, py = -r.y * persp;
@@ -1204,9 +1203,6 @@ function render({ model, el }) {
       ctx.fillText(l.text, p.sx + (l.align === "right" ? -4 : 4), p.sy);
       ctx.restore();
     }
-    const p = cam.project(SX - TW / 2 - 0.2, slabY(cursor), D / 2);
-    ctx.fillStyle = ink; ctx.textAlign = "right"; ctx.font = "bold 10px ui-monospace, SFMono-Regular, monospace";
-    ctx.fillText(`layer ${Math.round(cursor) + 1} ▸`, p.sx - 4, p.sy);
     ctx.restore();
   }
 
@@ -1225,19 +1221,12 @@ function render({ model, el }) {
     if (!v) { settingEl.textContent = "no examples"; legendEl.textContent = ""; return; }
     const who = d1 ? "D1 · the grader" : "LFM3 · the target";
     const adapter = v.lora ? `${v.lora.placement.replace("_", " ")}, rank ${v.lora.rank}` : "";
-    settingEl.innerHTML = `<strong>${who}</strong> · ${lora ? `with its LoRA (${adapter})` : "base model, no LoRA"}<br/>${d1 ? "reads the request and the call, answers three questions" : "reads the request, writes the call"} · ${v.n_total} tokens, ${nTok(v)} drawn`;
+    settingEl.innerHTML = `<strong>${who}</strong> · ${lora ? `with its LoRA (${adapter})` : "base model, no LoRA"}`;
     const bar = (stops) => `<i style="background: linear-gradient(90deg, ${stops.join(",")})"></i>`;
     const moved = v.stream && v.stream.moved ? Math.max(...v.stream.moved.flat()) : null;
-    let lines = lora
-      ? [`what the LoRA changes: less ${bar([css(DOWN), css(DARK), css(UP)])} more`, moved !== null ? `stack: how far each layer's output moved, up to ${pct(moved)} of its size` : "", attnNow && attnNow.kind === "change" ? `attention: change in weight, up to ±${attnNow.scale.toFixed(3)}` : ""]
-      : [`how much: none ${bar([css(DARK), css(MID), css(HOT)])} most`, "stack: size of each layer's output, per token", lt === "conv" ? "" : "attention: weight from each token (row) to each token"];
-    if (g && !d1) {
-      const A = G.against[g], w = weight(), n = G.margin.length, key = `${w}|${FLOOR}`;
-      const open = G.alternatives[FLOOR].filter((x) => x > 0).length, flips = A.flips[key] || [];
-      lines = [`guided decoding, away from ${g === "bad" ? "P_bad" : g === "weak" ? "weak P_good" : "the base model"}, w ${w}, floor ${FLOOR}`,
-        `bar: P_good's lead over its runner-up, in nats (capped at 13)`, `<span style="color:#ef4444">red</span>: what guidance takes off it · <span style="color:#3b82f6">blue</span>: adds · line: the floor, ${Math.log(1 / Number(FLOOR)).toFixed(1)} nats`,
-        `a second token is in reach at ${open} of ${n} tokens`, `it changes ${flips.length}` + (flips.length ? `: ${flips.filter((f) => f.from_reference).length} away from the reference, ${flips.filter((f) => f.to_reference).length} onto it` : "")];
-    } else if (g && d1) lines = ["guidance from the base model through the LoRA, w 1.5", `probability of each failure type: <span style="color:#3b82f6">base</span> · <span style="color:#94a3b8">with LoRA</span> · <span style="color:#ca8a04">guided</span>`];
+    let lines = lora ? [`less ${bar([css(DOWN), css(DARK), css(UP)])} more`] : [`none ${bar([css(DARK), css(MID), css(HOT)])} most`];
+    if (g && !d1) lines = [`<span style="color:#94a3b8">■</span> lead · <span style="color:#ef4444">■</span> taken · <span style="color:#3b82f6">■</span> added · <span style="color:#f59e0b">▬</span> floor`];
+    else if (g && d1) lines = [`<span style="color:#3b82f6">■</span> base · <span style="color:#94a3b8">■</span> LoRA · <span style="color:#ca8a04">■</span> guided`];
     legendEl.innerHTML = lines.filter(Boolean).join("<br/>");
   }
 
@@ -1251,17 +1240,22 @@ function render({ model, el }) {
       if (!sel) card.onclick = () => selectExample(idx);
       const answer = d1 && v.answer ? v.answer[lora ? "lora" : "base"] : null;
       const written = !d1 && v.written ? v.written[lora ? "lora" : "base"] : null;
-      const row = (title, toks, offset, paint) => {
+      const row = (title, toks, offset, paint, text = "") => {
+        let cursor = 0;  // the tokens are laid back into the original text, so spaces and line breaks are the real ones
         const r = document.createElement("div"); r.className = "lfm3-row";
-        const tag = document.createElement("span"); tag.className = "lfm3-tag"; tag.innerHTML = title; r.appendChild(tag);
+        if (offset >= v.n_in) r.classList.add("lfm3-code");
         toks.forEach((tok, i) => {
           const gi = offset + i, sp = document.createElement("span");
-          sp.className = "lfm3-tok"; sp.textContent = typeof tok === "string" ? tok : tok.t;
+          const raw = (typeof tok === "string" ? tok : tok.t).replace(/⏎/g, "\n").replace(/⇥/g, "\t");
+          const at = text.indexOf(raw, cursor);
+          if (at >= cursor && at - cursor < 40) { if (at > cursor) r.appendChild(document.createTextNode(text.slice(cursor, at))); cursor = at + raw.length; }
+          else if (i) r.appendChild(document.createTextNode(" "));
+          sp.className = "lfm3-tok"; sp.textContent = raw;
           if (sel && offset >= 0) {
             sp.style.cursor = "pointer";
             let val = 0;
             if (tF !== null) val = convLayer ? (inConvWindow(v, tF, gi) ? 0.5 : 0) : attnNow ? attnNow.row(tF)[gi] : 0;
-            if (gi === tF) { sp.style.outline = "2px solid #6366f1"; sp.style.outlineOffset = "1px"; }
+            if (gi === tF) { sp.style.outline = "1.5px solid #6366f1"; }
             const kind = !convLayer && attnNow ? attnNow.kind : "amount";
             if (Math.abs(val) > 0.06) { sp.style.background = css(kind === "change" ? change(val) : amount(val), 0.9); sp.style.color = "#fff"; }
             if (!convLayer && attnNow && tF !== null) sp.title = attnNow.kind === "change" ? `LoRA − base, from the outlined token: ${attnNow.raw(tF, gi) >= 0 ? "+" : ""}${attnNow.raw(tF, gi).toFixed(4)}` : `attention from the outlined token: ${pct(attnNow.raw(tF, gi), 1)}`;
@@ -1272,33 +1266,19 @@ function render({ model, el }) {
           if (paint) paint(sp, i);
           r.appendChild(sp);
         });
+        if (cursor < text.length) { const rest = document.createElement("span"); rest.style.opacity = "0.5"; rest.textContent = text.slice(cursor); r.appendChild(rest); }
         return r;
       };
-      const meta = (text) => { const m = document.createElement("div"); m.className = "lfm3-meta"; m.textContent = text; card.appendChild(m); };
       const ins = v.tokens.slice(0, v.n_in), outs = v.tokens.slice(v.n_in);
       if (d1) {
-        const under = (a) => (sp, j) => { const p = Math.max(a.start[j] || 0, a.end[j] || 0); if (p > 0.02) sp.style.boxShadow = `inset 0 -3px 0 rgba(239,68,68,${Math.min(1, 0.25 + p).toFixed(2)})`; };
-        card.appendChild(row("<b>D1 reads</b> the request", ins, 0));
-        card.appendChild(row("<b>D1 reads</b> the call it is asked about", outs, v.n_in, answer ? under(answer) : null));
-        if (answer) meta(`D1 answers (${lora ? "with LoRA" : "base"}): broken? ${answer.verdict === "broken" ? "yes" : "no"} (${pct(answer.p_broken)}) · type ${answer.top3.map(([l, p]) => `${l} ${pct(p)}`).join(", ")} · true: valid`);
-        const b = v.broken;
-        if (sel && b) {
-          const a = b[lora ? "lora" : "base"], ts = a.true_span && a.true_span.tokens;
-          card.appendChild(row("<b>D1 reads</b> a broken version of the call (answers only)", b.tokens, -1, (sp, j) => { under(a)(sp, j); if (ts && j >= ts[0] && j <= ts[1]) sp.style.borderColor = "#ef4444"; }));
-          meta(`D1 answers: broken? ${a.verdict === "broken" ? "yes" : "no"} (${pct(a.p_broken)}) · type ${a.type_if_broken} · true: ${b.true_label}; red box = the real fault, red underline = where D1 points`);
-        }
+        const under = (sp, j) => { const p = answer ? Math.max(answer.start[j] || 0, answer.end[j] || 0) : 0; if (p > 0.02) sp.style.boxShadow = `inset 0 -2px 0 rgba(239,68,68,${Math.min(1, 0.25 + p).toFixed(2)})`; };
+        card.appendChild(row("", ins, 0, null, ex.request));
+        card.appendChild(row("", outs, v.n_in, under, ex.code));
+        if (answer) { const out = document.createElement("div"); out.className = "lfm3-out"; out.textContent = `${answer.verdict === "broken" ? "broken" : "not broken"} · ${answer.failure_type} ${pct(answer.top3[0][1])}`; card.appendChild(out); }
       } else {
-        card.appendChild(row("<b>LFM3 reads</b> the request", ins, 0));
-        card.appendChild(row("<b>LFM3 writes</b> the call (the reference call is shown)", outs, v.n_in, written ? (sp, j) => {
-          if (written.top[j] !== outs[j].t && written.p_reference[j] < 0.5) { sp.style.borderColor = "#ef4444"; sp.style.borderStyle = "dashed"; }
-          sp.title = (sp.title ? sp.title + " · " : "") + `${lora ? "with LoRA" : "base"}: this token ${pct(written.p_reference[j], 1)}, its first choice ${JSON.stringify(written.top[j])}`;
-        } : null));
-        if (written) {
-          const agree = written.p_reference.filter((p, j) => written.top[j] === outs[j].t || p >= 0.5).length;
-          meta(`${lora ? "with LoRA" : "base model"}: the reference token is its first choice at ${agree} of ${outs.length} tokens (dashed red = it would write something else)`);
-        }
+        card.appendChild(row("", ins, 0, null, ex.request));
+        card.appendChild(row("", outs, v.n_in, written ? (sp, j) => { if (written.top[j] !== outs[j].t && written.p_reference[j] < 0.5) sp.style.textDecoration = "underline wavy #ef4444"; } : null, ex.code));
       }
-      if (sel && (v.truncated?.in || v.truncated?.out)) meta(`drawn: the first ${v.n_in} request and ${v.n_out} call tokens`);
       carousel.appendChild(card);
       if (sel && scrolledEx !== idx) { scrolledEx = idx; carousel.scrollLeft = Math.max(0, card.offsetLeft - carousel.offsetLeft); }
     });
