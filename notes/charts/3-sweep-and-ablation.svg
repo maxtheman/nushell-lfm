@@ -1,0 +1,99 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='900' height='760' viewBox='0 0 900 760'>
+<rect width='900' height='760' fill='#fcfcfb'/>
+<text x='24.0' y='30.0' font-size='16' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>Sweep and layer ablation: every setting with its 95% interval</text>
+<text x='24.0' y='50.0' font-size='12' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>Coloured: the setting carried forward. One short training run per setting, one seed.</text>
+<text x='24.0' y='84.0' font-size='12' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>Target: 200 rows, 1 epoch, scored on 24 held-out requests</text>
+<line x1='300.0' y1='95.0' x2='300.0' y2='365.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='300.0' y='381.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>0%</text>
+<line x1='385.0' y1='95.0' x2='385.0' y2='365.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='385.0' y='381.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>25%</text>
+<line x1='470.0' y1='95.0' x2='470.0' y2='365.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='470.0' y='381.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>50%</text>
+<line x1='555.0' y1='95.0' x2='555.0' y2='365.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='555.0' y='381.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>75%</text>
+<line x1='640.0' y1='95.0' x2='640.0' y2='365.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='640.0' y='381.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>100%</text>
+<text x='288.0' y='114.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 8, lr 0.0001</text>
+<line x1='472.8' y1='110.0' x2='589.3' y2='110.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='540.8' cy='110.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='114.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>71%  (17 of 24)</text>
+<text x='288.0' y='144.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 8, lr 0.0002</text>
+<line x1='487.3' y1='140.0' x2='599.2' y2='140.0' stroke='#2a78d6' stroke-width='2'/>
+<circle cx='555.0' cy='140.0' r='5' fill='#2a78d6' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='144.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>75%  (18 of 24)</text>
+<text x='288.0' y='174.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 8, lr 0.0004</text>
+<line x1='383.2' y1='170.0' x2='508.0' y2='170.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='441.7' cy='170.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='174.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>42%  (10 of 24)</text>
+<text x='288.0' y='204.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 16, lr 0.0001</text>
+<line x1='472.8' y1='200.0' x2='589.3' y2='200.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='540.8' cy='200.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='204.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>71%  (17 of 24)</text>
+<text x='288.0' y='234.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 16, lr 0.0002</text>
+<line x1='445.2' y1='230.0' x2='568.1' y2='230.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='512.5' cy='230.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='234.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>62%  (15 of 24)</text>
+<text x='288.0' y='264.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 16, lr 0.0004</text>
+<line x1='419.3' y1='260.0' x2='545.2' y2='260.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='484.2' cy='260.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='264.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>54%  (13 of 24)</text>
+<text x='288.0' y='294.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>attention only, rank 8, lr 0.0002</text>
+<line x1='445.2' y1='290.0' x2='568.1' y2='290.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='512.5' cy='290.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='294.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>62%  (15 of 24)</text>
+<text x='288.0' y='324.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>mlp only, rank 8, lr 0.0002</text>
+<line x1='472.8' y1='320.0' x2='589.3' y2='320.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='540.8' cy='320.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='324.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>71%  (17 of 24)</text>
+<text x='288.0' y='354.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>conv only, rank 8, lr 0.0002</text>
+<line x1='472.8' y1='350.0' x2='589.3' y2='350.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='540.8' cy='350.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='354.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>71%  (17 of 24)</text>
+<text x='24.0' y='421.0' font-size='12' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>Grader: 160 rows, 1 epoch, failure type on 100 held-out rows</text>
+<line x1='300.0' y1='432.0' x2='300.0' y2='702.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='300.0' y='718.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>0%</text>
+<line x1='385.0' y1='432.0' x2='385.0' y2='702.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='385.0' y='718.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>25%</text>
+<line x1='470.0' y1='432.0' x2='470.0' y2='702.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='470.0' y='718.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>50%</text>
+<line x1='555.0' y1='432.0' x2='555.0' y2='702.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='555.0' y='718.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>75%</text>
+<line x1='640.0' y1='432.0' x2='640.0' y2='702.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='640.0' y='718.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>100%</text>
+<text x='288.0' y='451.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 8, lr 0.0001</text>
+<line x1='450.5' y1='447.0' x2='515.7' y2='447.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='483.6' cy='447.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='451.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>54%  (54 of 100)</text>
+<text x='288.0' y='481.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 8, lr 0.0002</text>
+<line x1='447.2' y1='477.0' x2='512.5' y2='477.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='480.2' cy='477.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='481.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>53%  (53 of 100)</text>
+<text x='288.0' y='511.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 8, lr 0.0004</text>
+<line x1='383.5' y1='507.0' x2='445.2' y2='507.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='412.2' cy='507.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='511.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>33%  (33 of 100)</text>
+<text x='288.0' y='541.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 16, lr 0.0001</text>
+<line x1='447.2' y1='537.0' x2='512.5' y2='537.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='480.2' cy='537.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='541.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>53%  (53 of 100)</text>
+<text x='288.0' y='571.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 16, lr 0.0002</text>
+<line x1='383.5' y1='567.0' x2='445.2' y2='567.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='412.2' cy='567.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='571.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>33%  (33 of 100)</text>
+<text x='288.0' y='601.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>all linear, rank 16, lr 0.0004</text>
+<line x1='337.0' y1='597.0' x2='386.9' y2='597.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='357.8' cy='597.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='601.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>17%  (17 of 100)</text>
+<text x='288.0' y='631.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>attention only, rank 8, lr 0.0001</text>
+<line x1='457.2' y1='627.0' x2='522.1' y2='627.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='490.4' cy='627.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='631.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>56%  (56 of 100)</text>
+<text x='288.0' y='661.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>mlp only, rank 8, lr 0.0001</text>
+<line x1='463.9' y1='657.0' x2='528.5' y2='657.0' stroke='#eb6834' stroke-width='2'/>
+<circle cx='497.2' cy='657.0' r='5' fill='#eb6834' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='661.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>58%  (58 of 100)</text>
+<text x='288.0' y='691.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>conv only, rank 8, lr 0.0001</text>
+<line x1='453.8' y1='687.0' x2='518.9' y2='687.0' stroke='#8d8c86' stroke-width='2'/>
+<circle cx='487.0' cy='687.0' r='5' fill='#8d8c86' stroke='#fcfcfb' stroke-width='2'/>
+<text x='652.0' y='691.0' font-size='11' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>55%  (55 of 100)</text>
+</svg>

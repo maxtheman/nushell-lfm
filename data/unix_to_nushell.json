@@ -1,0 +1,1811 @@
+{
+ "generated_by": "scripts/fetch_command_usage.py",
+ "sources": [
+  "https://raw.githubusercontent.com/nushell/nushell.github.io/c4b4da1849e6a844d6914876e4d4f591bb0604fd/book/coming_from_bash.md",
+  "https://raw.githubusercontent.com/nushell/nushell.github.io/c4b4da1849e6a844d6914876e4d4f591bb0604fd/book/nushell_map.md"
+ ],
+ "checked_without_bash_column": [
+  "https://raw.githubusercontent.com/nushell/nushell.github.io/c4b4da1849e6a844d6914876e4d4f591bb0604fd/book/nushell_map_imperative.md",
+  "https://raw.githubusercontent.com/nushell/nushell.github.io/c4b4da1849e6a844d6914876e4d4f591bb0604fd/book/nushell_map_functional.md"
+ ],
+ "nushell_command_list": {
+  "url": "https://api.github.com/repos/nushell/nushell.github.io/git/trees/c4b4da1849e6a844d6914876e4d4f591bb0604fd?recursive=1",
+  "count": 749,
+  "use": "names of commands/docs/*.md; a Nu-side head counts as a builtin only if it is in this list"
+ },
+ "method": "Rows of the 'Command Equivalents' table in coming_from_bash.md and of nushell_map.md (Bash column). Bash side: leading utility of each backticked snippet (placeholders like 'command' skipped). Nu side: head of each pipeline stage of each backticked snippet that names a Nushell builtin (longest match against the command list). When a cell lists the same number of alternatives on both sides they are paired in order; otherwise every Bash alternative gets every Nu command of the row. Rows with an empty Bash cell continue the row above.",
+ "map": {
+  "alias": [
+   "alias"
+  ],
+  "bc": [
+   "math"
+  ],
+  "cat": [
+   "open",
+   "str join"
+  ],
+  "cd": [
+   "cd"
+  ],
+  "clear": [
+   "clear"
+  ],
+  "comm": [
+   "intersect",
+   "difference"
+  ],
+  "compgen": [
+   "which"
+  ],
+  "cp": [
+   "cp"
+  ],
+  "curl": [
+   "http"
+  ],
+  "date": [
+   "into datetime",
+   "date from-human",
+   "date"
+  ],
+  "du": [
+   "du",
+   "ls"
+  ],
+  "echo": [
+   "default",
+   "print"
+  ],
+  "exit": [
+   "exit"
+  ],
+  "export": [
+   "with-env"
+  ],
+  "find": [
+   "ls",
+   "get"
+  ],
+  "for": [
+   "ls",
+   "each",
+   "for"
+  ],
+  "free": [
+   "sys mem"
+  ],
+  "grep": [
+   "where",
+   "find"
+  ],
+  "head": [
+   "first",
+   "take"
+  ],
+  "history": [
+   "history"
+  ],
+  "kill": [
+   "kill"
+  ],
+  "ls": [
+   "ls",
+   "where"
+  ],
+  "lsblk": [
+   "sys disks"
+  ],
+  "man": [
+   "help",
+   "help commands"
+  ],
+  "mkdir": [
+   "mkdir"
+  ],
+  "mv": [
+   "mv",
+   "rename"
+  ],
+  "parallel": [
+   "par-each"
+  ],
+  "print": [
+   "print"
+  ],
+  "printf": [
+   "format",
+   "str"
+  ],
+  "ps": [
+   "ps"
+  ],
+  "pwd": [
+   "pwd"
+  ],
+  "read": [
+   "input"
+  ],
+  "rm": [
+   "rm"
+  ],
+  "sed": [
+   "str replace"
+  ],
+  "sort": [
+   "sort-by",
+   "union"
+  ],
+  "tail": [
+   "last"
+  ],
+  "tee": [
+   "tee"
+  ],
+  "time": [
+   "timeit"
+  ],
+  "touch": [
+   "touch"
+  ],
+  "type": [
+   "which"
+  ],
+  "uname": [
+   "uname",
+   "sys host"
+  ],
+  "uniq": [
+   "uniq"
+  ],
+  "unset": [
+   "hide-env"
+  ],
+  "wc": [
+   "str stats",
+   "length",
+   "str length"
+  ],
+  "wget": [
+   "http"
+  ],
+  "which": [
+   "which"
+  ],
+  "xargs": [
+   "par-each"
+  ]
+ },
+ "evidence": {
+  "alias": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 83,
+    "row": "| `alias s=\"git status -sb\"`           | `alias s = git status -sb`                                    | Define an alias temporarily                                       |",
+    "bash": "alias s=\"git status -sb\"",
+    "nu": "alias s = git status -sb",
+    "nu_builtins": [
+     "alias"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 7,
+    "row": "| [`alias`](/commands/docs/alias.md)                         |                               |                                                      | `Set-Alias`                                    | `alias`                                         |",
+    "bash": "alias",
+    "nu": "alias",
+    "nu_builtins": [
+     "alias"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "bash": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 89,
+    "row": "| `bash -c <commands>`                 | `nu -c <commands>`                                            | Run a pipeline of commands                                        |",
+    "bash": "bash -c <commands>",
+    "nu": "nu -c <commands>",
+    "nu_builtins": [],
+    "nu_other_heads": [
+     "nu"
+    ]
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 90,
+    "row": "| `bash <script file>`                 | `nu <script file>`                                            | Run a script file                                                 |",
+    "bash": "bash <script file>",
+    "nu": "nu <script file>",
+    "nu_builtins": [],
+    "nu_other_heads": [
+     "nu"
+    ]
+   }
+  ],
+  "bc": [
+   {
+    "page": "nushell_map.md",
+    "line": 10,
+    "row": "| [Operators](operators.md) and [`math`](/commands/docs/math.md) | Math operators            | `Aggregate`, `Average`, `Count`, `Max`, `Min`, `Sum` | `Measure-Object -Sum`                                          | `bc`                                            |",
+    "bash": "bc",
+    "nu": "math",
+    "nu_builtins": [
+     "math"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "cargo": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 70,
+    "row": "| `cargo b --jobs=$(nproc)`            | `cargo b $\"--jobs=(sys cpu \\| length)\"`                       | Use command output in an option                                   |",
+    "bash": "cargo b --jobs=$(nproc)",
+    "nu": "cargo b $\"--jobs=(sys cpu | length)\"",
+    "nu_builtins": [],
+    "nu_other_heads": [
+     "cargo"
+    ]
+   }
+  ],
+  "cat": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 43,
+    "row": "| `cat <path>`                         | `open --raw <path>`                                           | Display the contents of the given file                            |",
+    "bash": "cat <path>",
+    "nu": "open --raw <path>",
+    "nu_builtins": [
+     "open"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 44,
+    "row": "|                                      | `open <path>`                                                 | Read a file as structured data                                    |",
+    "bash": "cat <path>",
+    "nu": "open <path>",
+    "nu_builtins": [
+     "open"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 45,
+    "row": "| `cat <(<command1>) <(<command2>)`    | `[(command1), (command2)] \\| str join`                        | Concatenate the outputs of command1 and command2                  |",
+    "bash": "cat <(<command1>) <(<command2>)",
+    "nu": "[(command1), (command2)] | str join",
+    "nu_builtins": [
+     "str join"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 46,
+    "row": "| `cat <path> <(<command>)`            | `[(open --raw <path>), (command)] \\| str join`                | Concatenate the contents of the given file and output of command  |",
+    "bash": "cat <path> <(<command>)",
+    "nu": "[(open --raw <path>), (command)] | str join",
+    "nu_builtins": [
+     "str join"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 35,
+    "row": "| [`open`](/commands/docs/open.md)                           |                               |                                                      | `Get-Content`, `gc`, `cat`, `type`         | `cat`                                           |",
+    "bash": "cat",
+    "nu": "open",
+    "nu_builtins": [
+     "open"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "cd": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 28,
+    "row": "| `cd <directory>`                     | `cd <directory>`                                              | Change to the given directory                                     |",
+    "bash": "cd <directory>",
+    "nu": "cd <directory>",
+    "nu_builtins": [
+     "cd"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 29,
+    "row": "| `cd`                                 | `cd`                                                          | Change to the home directory                                      |",
+    "bash": "cd",
+    "nu": "cd",
+    "nu_builtins": [
+     "cd"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 30,
+    "row": "| `cd -`                               | `cd -`                                                        | Change to the previous directory                                  |",
+    "bash": "cd -",
+    "nu": "cd -",
+    "nu_builtins": [
+     "cd"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 11,
+    "row": "| [`cd`](/commands/docs/cd.md)                               |                               |                                                      | `Set-Location`, `cd`                       | `cd`                                            |",
+    "bash": "cd",
+    "nu": "cd",
+    "nu_builtins": [
+     "cd"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "clear": [
+   {
+    "page": "nushell_map.md",
+    "line": 12,
+    "row": "| [`clear`](/commands/docs/clear.md)<br /><kbd>Ctrl/⌘</kbd>+<kbd>L</kbd> |                  |                                                      | `Clear-Host`<br /><kbd>Ctrl/⌘</kbd>+<kbd>L</kbd>  | `clear`<br /><kbd>Ctrl/⌘</kbd>+<kbd>L</kbd> |",
+    "bash": "clear",
+    "nu": "clear",
+    "nu_builtins": [
+     "clear"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "comm": [
+   {
+    "page": "nushell_map.md",
+    "line": 68,
+    "row": "| [`union`](/commands/docs/union.md)<br />[`intersect`](/commands/docs/intersect.md)<br />[`difference`](/commands/docs/difference.md) | `union`<br />`intersect`<br />`except` | `Union`<br />`Intersect`<br />`Except` | `Compare-Object`              | `sort -u`<br />`comm -12`<br />`comm -23`       |",
+    "bash": "comm -12",
+    "nu": "intersect",
+    "nu_builtins": [
+     "intersect"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 68,
+    "row": "| [`union`](/commands/docs/union.md)<br />[`intersect`](/commands/docs/intersect.md)<br />[`difference`](/commands/docs/difference.md) | `union`<br />`intersect`<br />`except` | `Union`<br />`Intersect`<br />`Except` | `Compare-Object`              | `sort -u`<br />`comm -12`<br />`comm -23`       |",
+    "bash": "comm -23",
+    "nu": "difference",
+    "nu_builtins": [
+     "difference"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "compgen": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 87,
+    "row": "| `compgen -c`                         | `which`                                                       | List every Nushell command and every executable in PATH           |",
+    "bash": "compgen -c",
+    "nu": "which",
+    "nu_builtins": [
+     "which"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "cp": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 50,
+    "row": "| `cp <source> <dest>`                 | `cp <source> <dest>`                                          | Copy file to new location                                         |",
+    "bash": "cp <source> <dest>",
+    "nu": "cp <source> <dest>",
+    "nu_builtins": [
+     "cp"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 51,
+    "row": "| `cp -r <source> <dest>`              | `cp -r <source> <dest>`                                       | Copy directory to a new location, recursively                     |",
+    "bash": "cp -r <source> <dest>",
+    "nu": "cp -r <source> <dest>",
+    "nu_builtins": [
+     "cp"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 14,
+    "row": "| [`cp`](/commands/docs/cp.md)                               |                               |                                                      | `Copy-Item`, `cp`, `copy`                  | `cp`                                            |",
+    "bash": "cp",
+    "nu": "cp",
+    "nu_builtins": [
+     "cp"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "curl": [
+   {
+    "page": "nushell_map.md",
+    "line": 19,
+    "row": "| [`http`](/commands/docs/http.md)                           |                               | `HttpClient`, `WebClient`, `HttpWebRequest/Response` | `Invoke-WebRequest`                        | `wget`, `curl`                                  |",
+    "bash": "curl",
+    "nu": "http",
+    "nu_builtins": [
+     "http"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "date": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 55,
+    "row": "| `date -d <date>`                     | `\"<date>\" \\| into datetime -f <format>`                       | Parse a date ([format documentation](https://docs.rs/chrono/0.4.15/chrono/format/strftime/index.html)) |",
+    "bash": "date -d <date>",
+    "nu": "\"<date>\" | into datetime -f <format>",
+    "nu_builtins": [
+     "into datetime"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 56,
+    "row": "| `date -d \"tomorrow\"`                 | `\"tomorrow\" \\| date from-human`                               | Parse a human-readable date                                       |",
+    "bash": "date -d \"tomorrow\"",
+    "nu": "\"tomorrow\" | date from-human",
+    "nu_builtins": [
+     "date from-human"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 57,
+    "row": "|                                      | `date from-human --list`                                      | Show example phrases that `date from-human` understands           |",
+    "bash": "date -d \"tomorrow\"",
+    "nu": "date from-human --list",
+    "nu_builtins": [
+     "date from-human"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 15,
+    "row": "| [`date`](/commands/docs/date.md)                           | `NOW()`, `getdate()`          | `DateTime` class                                     | `Get-Date`                                 | `date`                                          |",
+    "bash": "date",
+    "nu": "date",
+    "nu_builtins": [
+     "date"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "du": [
+   {
+    "page": "nushell_map.md",
+    "line": 16,
+    "row": "| [`du`](/commands/docs/du.md)<br />[`ls --du`](/commands/docs/ls.md) |                      |                                                      | `Get-ChildItem -File -Recurse -Force \\| Measure-Object Length -Sum`                                          | `du`                                            |",
+    "bash": "du",
+    "nu": "du / ls --du",
+    "nu_builtins": [
+     "du",
+     "ls"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "echo": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 69,
+    "row": "| `echo /tmp/$RANDOM`                  | `$\"/tmp/(random int)\"`                                        | Use command output in a string                                    |",
+    "bash": "echo /tmp/$RANDOM",
+    "nu": "$\"/tmp/(random int)\"",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 71,
+    "row": "| `echo $PATH`                         | `$env.PATH` (Non-Windows) or `$env.Path` (Windows)            | See the current path                                              |",
+    "bash": "echo $PATH",
+    "nu": "$env.PATH",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 71,
+    "row": "| `echo $PATH`                         | `$env.PATH` (Non-Windows) or `$env.Path` (Windows)            | See the current path                                              |",
+    "bash": "echo $PATH",
+    "nu": "$env.Path",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 72,
+    "row": "| `echo $?`                            | `$env.LAST_EXIT_CODE`                                         | See the exit status of the last executed command                  |",
+    "bash": "echo $?",
+    "nu": "$env.LAST_EXIT_CODE",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 80,
+    "row": "| `echo $FOO`                          | `$env.FOO`                                                    | Use environment variables                                         |",
+    "bash": "echo $FOO",
+    "nu": "$env.FOO",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 81,
+    "row": "| `echo ${FOO:-fallback}`              | `$env.FOO? \\| default \"ABC\"`                                  | Use a fallback in place of an unset variable                      |",
+    "bash": "echo ${FOO:-fallback}",
+    "nu": "$env.FOO? | default \"ABC\"",
+    "nu_builtins": [
+     "default"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 92,
+    "row": "| `pwd` or `echo $PWD`                 | `pwd` or `$env.PWD`                                           | Display the current directory (`pwd` returns `$env.PWD`)          |",
+    "bash": "echo $PWD",
+    "nu": "$env.PWD",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 37,
+    "row": "| [`print`](/commands/docs/print.md)                         | `print`, `union all`          |                                                      | `Write-Output`, `write`                    | `echo`, `print`                                 |",
+    "bash": "echo",
+    "nu": "print",
+    "nu_builtins": [
+     "print"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "exit": [
+   {
+    "page": "nushell_map.md",
+    "line": 18,
+    "row": "| [`exit`](/commands/docs/exit.md)<br /><kbd>Ctrl/⌘</kbd>+<kbd>D</kbd> |                    |                                                      | `exit`<br /><kbd>Ctrl/⌘</kbd>+<kbd>D</kbd> | `exit`<br /><kbd>Ctrl/⌘</kbd>+<kbd>D</kbd>    |",
+    "bash": "exit",
+    "nu": "exit",
+    "nu_builtins": [
+     "exit"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "export": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 75,
+    "row": "| `export PATH = $PATH:/usr/other/bin` | `$env.PATH = ($env.PATH \\| append /usr/other/bin)`            | Update PATH temporarily                                           |",
+    "bash": "export PATH = $PATH:/usr/other/bin",
+    "nu": "$env.PATH = ($env.PATH | append /usr/other/bin)",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 76,
+    "row": "| `export`                             | `$env`                                                        | List the current environment variables                            |",
+    "bash": "export",
+    "nu": "$env",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 79,
+    "row": "| `export FOO=BAR`                     | `$env.FOO = \"BAR\"`                                            | Set environment variable for current session                      |",
+    "bash": "export FOO=BAR",
+    "nu": "$env.FOO = \"BAR\"",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 73,
+    "row": "| `$env.FOO = \"bar\"`<br />[`with-env`](/commands/docs/with-env.md) |                         |                                                      | `$env:FOO = 'bar'`                         | `export FOO=\"bar\"`                              |",
+    "bash": "export FOO=\"bar\"",
+    "nu": "$env.FOO = \"bar\" / with-env",
+    "nu_builtins": [
+     "with-env"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "find": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 26,
+    "row": "| `find . -name *.rs`                  | `ls **/*.rs`                                                  | Find recursively all files that match a given pattern             |",
+    "bash": "find . -name *.rs",
+    "nu": "ls **/*.rs",
+    "nu_builtins": [
+     "ls"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 27,
+    "row": "| `find . -name Makefile \\| xargs vim` | `ls **/Makefile \\| get name \\| vim ...$in`                    | Pass values as command parameters                                 |",
+    "bash": "find . -name Makefile | xargs vim",
+    "nu": "ls **/Makefile | get name | vim ...$in",
+    "nu_builtins": [
+     "ls",
+     "get"
+    ],
+    "nu_other_heads": [
+     "vim"
+    ]
+   }
+  ],
+  "for": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 48,
+    "row": "| `for f in *.md; do echo $f; done`    | `ls *.md \\| each { $in.name }`                                | Iterate over a list and return results                            |",
+    "bash": "for f in *.md; do echo $f; done",
+    "nu": "ls *.md | each { $in.name }",
+    "nu_builtins": [
+     "ls",
+     "each"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 49,
+    "row": "| `for i in $(seq 1 10); do echo $i; done` | `for i in 1..10 { print $i }`                             | Iterate over a list and run a command on results                  |",
+    "bash": "for i in $(seq 1 10); do echo $i; done",
+    "nu": "for i in 1..10 { print $i }",
+    "nu_builtins": [
+     "for"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 17,
+    "row": "| [`each`](/commands/docs/each.md)                           | Cursors                       |                                                      | `ForEach-Object`, `foreach`, `for`         | `for`                                           |",
+    "bash": "for",
+    "nu": "each",
+    "nu_builtins": [
+     "each"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "free": [
+   {
+    "page": "nushell_map.md",
+    "line": 60,
+    "row": "| [`sys mem`](/commands/docs/sys_mem.md)                     |                               |                                                      | `Get-ComputerInfo`                         | `free`                                          |",
+    "bash": "free",
+    "nu": "sys mem",
+    "nu_builtins": [
+     "sys mem"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "grep": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 59,
+    "row": "| `grep <pattern>`                     | `where $it =~ <substring>` or `find <substring>`              | Filter strings that contain the substring                         |",
+    "bash": "grep <pattern>",
+    "nu": "where $it =~ <substring>",
+    "nu_builtins": [
+     "where"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 59,
+    "row": "| `grep <pattern>`                     | `where $it =~ <substring>` or `find <substring>`              | Filter strings that contain the substring                         |",
+    "bash": "grep <pattern>",
+    "nu": "find <substring>",
+    "nu_builtins": [
+     "find"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 60,
+    "row": "| `grep -i <pattern>`                  | `find -i <substring>`                                         | Filter strings that contain the substring, ignoring case          |",
+    "bash": "grep -i <pattern>",
+    "nu": "find -i <substring>",
+    "nu_builtins": [
+     "find"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 61,
+    "row": "| `grep -o <regex>`                    | `find -o -r <regex>`                                          | Output only the matched text, one value per match                 |",
+    "bash": "grep -o <regex>",
+    "nu": "find -o -r <regex>",
+    "nu_builtins": [
+     "find"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 62,
+    "row": "| `grep -v <pattern>`                  | `find -v <substring>`                                         | Filter strings that don't contain the substring                   |",
+    "bash": "grep -v <pattern>",
+    "nu": "find -v <substring>",
+    "nu_builtins": [
+     "find"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "head": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 42,
+    "row": "| `command \\| head -5`                 | `command \\| first 5`                                          | Limit the output to the first 5 rows of an internal command (see also `last` and `skip`) |",
+    "bash": "command | head -5",
+    "nu": "command | first 5",
+    "nu_builtins": [
+     "first"
+    ],
+    "nu_other_heads": [
+     "command"
+    ]
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 20,
+    "row": "| [`first`](/commands/docs/first.md)                         | `top`, `limit`                | `First`, `FirstOrDefault`                            | `Select-Object -First`                     | `head`                                          |",
+    "bash": "head",
+    "nu": "first",
+    "nu_builtins": [
+     "first"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 62,
+    "row": "| [`take`](/commands/docs/take.md)                           | `top`, `limit`                | `Take`                                               | `Select-Object -First`                     | `head`                                          |",
+    "bash": "head",
+    "nu": "take",
+    "nu_builtins": [
+     "take"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "history": [
+   {
+    "page": "nushell_map.md",
+    "line": 26,
+    "row": "| [`history`](/commands/docs/history.md)                     |                               |                                                      | `Get-History`, `history`                   | `history`                                       |",
+    "bash": "history",
+    "nu": "history",
+    "nu_builtins": [
+     "history"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "kill": [
+   {
+    "page": "nushell_map.md",
+    "line": 28,
+    "row": "| [`kill`](/commands/docs/kill.md)                           |                               |                                                      | `Stop-Process`, `kill`                     | `kill`                                          |",
+    "bash": "kill",
+    "nu": "kill",
+    "nu_builtins": [
+     "kill"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "less": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 40,
+    "row": "| `command 2>&1 \\| less`               | `command out+err>\\| less` or `command o+e>\\| less`            | Pipe stdout and stderr of an external command into less (NOTE: use [explore](explore.html) for paging output of internal commands) |",
+    "bash": "command 2>&1 | less",
+    "nu": "command out+err>| less",
+    "nu_builtins": [],
+    "nu_other_heads": [
+     "command",
+     "less"
+    ]
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 40,
+    "row": "| `command 2>&1 \\| less`               | `command out+err>\\| less` or `command o+e>\\| less`            | Pipe stdout and stderr of an external command into less (NOTE: use [explore](explore.html) for paging output of internal commands) |",
+    "bash": "command 2>&1 | less",
+    "nu": "command o+e>| less",
+    "nu_builtins": [],
+    "nu_other_heads": [
+     "command",
+     "less"
+    ]
+   }
+  ],
+  "ls": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 21,
+    "row": "| `ls`                                 | `ls`                                                          | Lists the files in the current directory                          |",
+    "bash": "ls",
+    "nu": "ls",
+    "nu_builtins": [
+     "ls"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 22,
+    "row": "| `ls <dir>`                           | `ls <dir>`                                                    | Lists the files in the given directory                            |",
+    "bash": "ls <dir>",
+    "nu": "ls <dir>",
+    "nu_builtins": [
+     "ls"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 23,
+    "row": "| `ls pattern*`                        | `ls pattern*`                                                 | Lists files that match a given pattern                            |",
+    "bash": "ls pattern*",
+    "nu": "ls pattern*",
+    "nu_builtins": [
+     "ls"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 24,
+    "row": "| `ls -la`                             | `ls --long --all` or `ls -la`                                 | List files with all available information, including hidden files |",
+    "bash": "ls -la",
+    "nu": "ls --long --all",
+    "nu_builtins": [
+     "ls"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 24,
+    "row": "| `ls -la`                             | `ls --long --all` or `ls -la`                                 | List files with all available information, including hidden files |",
+    "bash": "ls -la",
+    "nu": "ls -la",
+    "nu_builtins": [
+     "ls"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 25,
+    "row": "| `ls -d */`                           | `ls \\| where type == dir`                                     | List directories                                                  |",
+    "bash": "ls -d */",
+    "nu": "ls | where type == dir",
+    "nu_builtins": [
+     "ls",
+     "where"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 32,
+    "row": "| [`ls`](/commands/docs/ls.md)                               |                               |                                                      | `Get-ChildItem`, `dir`, `ls`               | `ls`                                            |",
+    "bash": "ls",
+    "nu": "ls",
+    "nu_builtins": [
+     "ls"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "lsblk": [
+   {
+    "page": "nushell_map.md",
+    "line": 59,
+    "row": "| [`sys disks`](/commands/docs/sys_disks.md)                 |                               |                                                      | `Get-Disk`, `Get-Partition`, `Get-Volume` etc                         | `lsblk`                                         |",
+    "bash": "lsblk",
+    "nu": "sys disks",
+    "nu_builtins": [
+     "sys disks"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "man": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 63,
+    "row": "| `man <command>`                      | `help <command>`                                              | Get the help for a given command                                  |",
+    "bash": "man <command>",
+    "nu": "help <command>",
+    "nu_builtins": [
+     "help"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 64,
+    "row": "|                                      | `help commands`                                               | List all available commands                                       |",
+    "bash": "man <command>",
+    "nu": "help commands",
+    "nu_builtins": [
+     "help commands"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 65,
+    "row": "|                                      | `help --find <string>`                                        | Search for match in all available commands                        |",
+    "bash": "man <command>",
+    "nu": "help --find <string>",
+    "nu_builtins": [
+     "help"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 25,
+    "row": "| [`help`](/commands/docs/help.md)                           | `sp_help`                     |                                                      | `Get-Help`, `help`, `man`                  | `man`                                           |",
+    "bash": "man",
+    "nu": "help",
+    "nu_builtins": [
+     "help"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "mkdir": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 31,
+    "row": "| `mkdir <path>`                       | `mkdir <path>`                                                | Creates the given path                                            |",
+    "bash": "mkdir <path>",
+    "nu": "mkdir <path>",
+    "nu_builtins": [
+     "mkdir"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 32,
+    "row": "| `mkdir -p <path>`                    | `mkdir <path>`                                                | Creates the given path, creating parents as necessary             |",
+    "bash": "mkdir -p <path>",
+    "nu": "mkdir <path>",
+    "nu_builtins": [
+     "mkdir"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 33,
+    "row": "| [`mkdir`](/commands/docs/mkdir.md)                         |                               |                                                      | `mkdir`, `md`, `New-Item -ItemType Directory` | `mkdir`                                      |",
+    "bash": "mkdir",
+    "nu": "mkdir",
+    "nu_builtins": [
+     "mkdir"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "mv": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 47,
+    "row": "| `mv <source> <dest>`                 | `mv <source> <dest>`                                          | Move file to new location                                         |",
+    "bash": "mv <source> <dest>",
+    "nu": "mv <source> <dest>",
+    "nu_builtins": [
+     "mv"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 34,
+    "row": "| [`mv`](/commands/docs/mv.md)                               |                               |                                                      | `Move-Item`, `mv`, `move`, `mi`            | `mv`                                            |",
+    "bash": "mv",
+    "nu": "mv",
+    "nu_builtins": [
+     "mv"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 43,
+    "row": "| [`rename`](/commands/docs/rename.md)                       |                               |                                                      | `Rename-Item`, `ren`, `rni`                | `mv`                                            |",
+    "bash": "mv",
+    "nu": "rename",
+    "nu_builtins": [
+     "rename"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "parallel": [
+   {
+    "page": "nushell_map.md",
+    "line": 36,
+    "row": "| [`par-each`](/commands/docs/par-each.md)                   |                               | `AsParallel`                                         | `ForEach-Object -Parallel`                 | `xargs -P`, `parallel`                          |",
+    "bash": "parallel",
+    "nu": "par-each",
+    "nu_builtins": [
+     "par-each"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "print": [
+   {
+    "page": "nushell_map.md",
+    "line": 37,
+    "row": "| [`print`](/commands/docs/print.md)                         | `print`, `union all`          |                                                      | `Write-Output`, `write`                    | `echo`, `print`                                 |",
+    "bash": "print",
+    "nu": "print",
+    "nu_builtins": [
+     "print"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "printf": [
+   {
+    "page": "nushell_map.md",
+    "line": 21,
+    "row": "| [`format`](/commands/docs/format.md), [`str`](/commands/docs/str.md) |                     | `String.Format`                                      | `<format> -f <values>`                            | `printf`                                        |",
+    "bash": "printf",
+    "nu": "format / str",
+    "nu_builtins": [
+     "format",
+     "str"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "ps": [
+   {
+    "page": "nushell_map.md",
+    "line": 39,
+    "row": "| [`ps`](/commands/docs/ps.md)                               |                               |                                                      | `Get-Process`, `ps`, `gps`                 | `ps`                                            |",
+    "bash": "ps",
+    "nu": "ps",
+    "nu_builtins": [
+     "ps"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "pwd": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 92,
+    "row": "| `pwd` or `echo $PWD`                 | `pwd` or `$env.PWD`                                           | Display the current directory (`pwd` returns `$env.PWD`)          |",
+    "bash": "pwd",
+    "nu": "pwd",
+    "nu_builtins": [
+     "pwd"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 93,
+    "row": "| `pwd -P`                             | `pwd -P` or `pwd --physical`                                  | Display the current directory with symbolic links resolved        |",
+    "bash": "pwd -P",
+    "nu": "pwd -P",
+    "nu_builtins": [
+     "pwd"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 93,
+    "row": "| `pwd -P`                             | `pwd -P` or `pwd --physical`                                  | Display the current directory with symbolic links resolved        |",
+    "bash": "pwd -P",
+    "nu": "pwd --physical",
+    "nu_builtins": [
+     "pwd"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 40,
+    "row": "| [`pwd`](/commands/docs/pwd.md)                             |                               |                                                      | `Get-Location`, `pwd`                      | `pwd`                                           |",
+    "bash": "pwd",
+    "nu": "pwd",
+    "nu_builtins": [
+     "pwd"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "read": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 94,
+    "row": "| `read var`                           | `let var = input`                                             | Get input from the user                                           |",
+    "bash": "read var",
+    "nu": "let var = input",
+    "nu_builtins": [
+     "input"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 95,
+    "row": "| `read -s secret`                     | `let secret = input -s`                                       | Get a secret value from the user without printing keystrokes      |",
+    "bash": "read -s secret",
+    "nu": "let secret = input -s",
+    "nu_builtins": [
+     "input"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "rm": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 52,
+    "row": "| `rm <path>`                          | `rm <path>`                                                   | Remove the given file                                             |",
+    "bash": "rm <path>",
+    "nu": "rm <path>",
+    "nu_builtins": [
+     "rm"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 53,
+    "row": "|                                      | `rm -t <path>`                                                | Move the given file to the system trash                           |",
+    "bash": "rm <path>",
+    "nu": "rm -t <path>",
+    "nu_builtins": [
+     "rm"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 54,
+    "row": "| `rm -rf <path>`                      | `rm -r <path>`                                                | Recursively removes the given path                                |",
+    "bash": "rm -rf <path>",
+    "nu": "rm -r <path>",
+    "nu_builtins": [
+     "rm"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 45,
+    "row": "| [`rm`](/commands/docs/rm.md)                               |                               |                                                      | `Remove-Item`, `del`, `erase`, `rd`, `ri`, `rm`, `rmdir` | `rm`                              |",
+    "bash": "rm",
+    "nu": "rm",
+    "nu_builtins": [
+     "rm"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "sed": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 58,
+    "row": "| `sed`                                | `str replace`                                                 | Find and replace a pattern in a string                            |",
+    "bash": "sed",
+    "nu": "str replace",
+    "nu_builtins": [
+     "str replace"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "set": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 73,
+    "row": "| `set -o pipefail`                    | (default behavior)                                            | Fail a pipeline if any external command in it fails               |",
+    "bash": "set -o pipefail",
+    "nu": "",
+    "nu_builtins": [],
+    "nu_other_heads": []
+   }
+  ],
+  "sort": [
+   {
+    "page": "nushell_map.md",
+    "line": 53,
+    "row": "| [`sort-by`](/commands/docs/sort-by.md)                     | `order by`                    | `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending` | `Sort-Object`, `sort`              | `sort`                                          |",
+    "bash": "sort",
+    "nu": "sort-by",
+    "nu_builtins": [
+     "sort-by"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 68,
+    "row": "| [`union`](/commands/docs/union.md)<br />[`intersect`](/commands/docs/intersect.md)<br />[`difference`](/commands/docs/difference.md) | `union`<br />`intersect`<br />`except` | `Union`<br />`Intersect`<br />`Except` | `Compare-Object`              | `sort -u`<br />`comm -12`<br />`comm -23`       |",
+    "bash": "sort -u",
+    "nu": "union",
+    "nu_builtins": [
+     "union"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "stat": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 68,
+    "row": "| `stat $(which git)`                  | `stat ...(which git).path`                                    | Use command output as argument for other command                  |",
+    "bash": "stat $(which git)",
+    "nu": "stat ...(which git).path",
+    "nu_builtins": [],
+    "nu_other_heads": [
+     "stat"
+    ]
+   }
+  ],
+  "tail": [
+   {
+    "page": "nushell_map.md",
+    "line": 29,
+    "row": "| [`last`](/commands/docs/last.md)                           |                               | `Last`, `LastOrDefault`                              | `Select-Object -Last`                      | `tail`                                          |",
+    "bash": "tail",
+    "nu": "last",
+    "nu_builtins": [
+     "last"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "tee": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 41,
+    "row": "| `cmd1 \\| tee log.txt \\| cmd2`        | `cmd1 \\| tee { save log.txt } \\| cmd2`                        | Tee command output to a log file                                  |",
+    "bash": "cmd1 | tee log.txt | cmd2",
+    "nu": "cmd1 | tee { save log.txt } | cmd2",
+    "nu_builtins": [
+     "tee"
+    ],
+    "nu_other_heads": [
+     "cmd1",
+     "cmd2"
+    ]
+   }
+  ],
+  "time": [
+   {
+    "page": "nushell_map.md",
+    "line": 65,
+    "row": "| [`timeit`](/commands/docs/timeit.md)                       |                               |                                                      | `Measure-Command`                          | `time`                                          |",
+    "bash": "time",
+    "nu": "timeit",
+    "nu_builtins": [
+     "timeit"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "touch": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 33,
+    "row": "| `touch test.txt`                     | `touch test.txt`                                              | Create a file                                                     |",
+    "bash": "touch test.txt",
+    "nu": "touch test.txt",
+    "nu_builtins": [
+     "touch"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "nushell_map.md",
+    "line": 67,
+    "row": "| [`touch`](/commands/docs/touch.md)                         |                               |                                                      | `New-Item`                              | `touch`                                         |",
+    "bash": "touch",
+    "nu": "touch",
+    "nu_builtins": [
+     "touch"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "type": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 84,
+    "row": "| `type FOO`                           | `which FOO`                                                   | Display information about a command (builtin, alias, or executable) |",
+    "bash": "type FOO",
+    "nu": "which FOO",
+    "nu_builtins": [
+     "which"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 85,
+    "row": "| `type -a FOO`                        | `which -a FOO`                                                | List the Nushell command and each executable in PATH with that name |",
+    "bash": "type -a FOO",
+    "nu": "which -a FOO",
+    "nu_builtins": [
+     "which"
+    ],
+    "nu_other_heads": []
+   },
+   {
+    "page": "coming_from_bash.md",
+    "line": 86,
+    "row": "| `type -P FOO`                        | `which ^FOO`                                                  | Look up only the external program, skipping Nushell commands      |",
+    "bash": "type -P FOO",
+    "nu": "which ^FOO",
+    "nu_builtins": [
+     "which"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "uname": [
+   {
+    "page": "nushell_map.md",
+    "line": 58,
+    "row": "| [`uname`](/commands/docs/uname.md)<br />[`sys host`](/commands/docs/sys_host.md)                   |                               |                                                      | `Get-ComputerInfo`                         | `uname`                                         |",
+    "bash": "uname",
+    "nu": "uname / sys host",
+    "nu_builtins": [
+     "uname",
+     "sys host"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "uniq": [
+   {
+    "page": "nushell_map.md",
+    "line": 69,
+    "row": "| [`uniq`](/commands/docs/uniq.md)                           | `distinct`                    | `Distinct`                                           | `Get-Unique`, `Sort-Object -Unique`                         | `uniq`                                          |",
+    "bash": "uniq",
+    "nu": "uniq",
+    "nu_builtins": [
+     "uniq"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "unset": [
+   {
+    "page": "coming_from_bash.md",
+    "line": 82,
+    "row": "| `unset FOO`                          | `hide-env FOO`                                                | Unset environment variable for current session                    |",
+    "bash": "unset FOO",
+    "nu": "hide-env FOO",
+    "nu_builtins": [
+     "hide-env"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "wc": [
+   {
+    "page": "nushell_map.md",
+    "line": 30,
+    "row": "| [`str stats`](/commands/docs/str_stats.md)<br />[`length`](/commands/docs/length.md)<br />[`str length`](/commands/docs/str_length.md) | `count`  | `Count`                                        | `Measure-Object`, `measure`                | `wc`                                            |",
+    "bash": "wc",
+    "nu": "str stats / length / str length",
+    "nu_builtins": [
+     "str stats",
+     "length",
+     "str length"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "wget": [
+   {
+    "page": "nushell_map.md",
+    "line": 19,
+    "row": "| [`http`](/commands/docs/http.md)                           |                               | `HttpClient`, `WebClient`, `HttpWebRequest/Response` | `Invoke-WebRequest`                        | `wget`, `curl`                                  |",
+    "bash": "wget",
+    "nu": "http",
+    "nu_builtins": [
+     "http"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "which": [
+   {
+    "page": "nushell_map.md",
+    "line": 75,
+    "row": "| [`which`](/commands/docs/which.md)                         |                               |                                                      | `Get-Command`                              | `which`                                         |",
+    "bash": "which",
+    "nu": "which",
+    "nu_builtins": [
+     "which"
+    ],
+    "nu_other_heads": []
+   }
+  ],
+  "xargs": [
+   {
+    "page": "nushell_map.md",
+    "line": 36,
+    "row": "| [`par-each`](/commands/docs/par-each.md)                   |                               | `AsParallel`                                         | `ForEach-Object -Parallel`                 | `xargs -P`, `parallel`                          |",
+    "bash": "xargs -P",
+    "nu": "par-each",
+    "nu_builtins": [
+     "par-each"
+    ],
+    "nu_other_heads": []
+   }
+  ]
+ },
+ "stated_without_nu_builtin": [
+  "bash",
+  "cargo",
+  "less",
+  "set",
+  "stat"
+ ],
+ "suggested_not_in_source": {
+  ".": {
+   "nu": [
+    "source"
+   ],
+   "why": "",
+   "weight": null
+  },
+  "[": {
+   "nu": [
+    "path exists",
+    "path type"
+   ],
+   "why": "file tests",
+   "weight": null
+  },
+  "awk": {
+   "nu": [
+    "split column",
+    "where",
+    "each",
+    "get",
+    "math sum"
+   ],
+   "why": "field-wise processing",
+   "weight": null
+  },
+  "base64": {
+   "nu": [
+    "encode base64",
+    "decode base64"
+   ],
+   "why": "Nushell builtins",
+   "weight": null
+  },
+  "basename": {
+   "nu": [
+    "path basename"
+   ],
+   "why": "Nushell builtin `path basename`",
+   "weight": null
+  },
+  "cal": {
+   "nu": [
+    "cal"
+   ],
+   "why": "Nushell builtin `cal`",
+   "weight": null
+  },
+  "cut": {
+   "nu": [
+    "select",
+    "split column",
+    "split row"
+   ],
+   "why": "column/field selection",
+   "weight": null
+  },
+  "dirname": {
+   "nu": [
+    "path dirname"
+   ],
+   "why": "Nushell builtin `path dirname`",
+   "weight": null
+  },
+  "env": {
+   "nu": [
+    "$env",
+    "with-env"
+   ],
+   "why": "`$env` record / `with-env`",
+   "weight": null
+  },
+  "jq": {
+   "nu": [
+    "from json",
+    "get",
+    "where",
+    "to json"
+   ],
+   "why": "structured JSON processing",
+   "weight": null
+  },
+  "less": {
+   "nu": [
+    "explore"
+   ],
+   "why": "the book mentions explore for paging internal output only in a note",
+   "weight": null
+  },
+  "md5sum": {
+   "nu": [
+    "hash md5"
+   ],
+   "why": "Nushell builtin `hash md5`",
+   "weight": null
+  },
+  "more": {
+   "nu": [
+    "explore"
+   ],
+   "why": "as less",
+   "weight": null
+  },
+  "nl": {
+   "nu": [
+    "enumerate"
+   ],
+   "why": "Nushell builtin `enumerate`",
+   "weight": null
+  },
+  "paste": {
+   "nu": [
+    "zip",
+    "str join"
+   ],
+   "why": "",
+   "weight": null
+  },
+  "printenv": {
+   "nu": [
+    "$env"
+   ],
+   "why": "`$env` record",
+   "weight": null
+  },
+  "readlink": {
+   "nu": [
+    "path expand"
+   ],
+   "why": "`path expand` resolves symlinks",
+   "weight": null
+  },
+  "realpath": {
+   "nu": [
+    "path expand"
+   ],
+   "why": "Nushell builtin `path expand`",
+   "weight": null
+  },
+  "rev": {
+   "nu": [
+    "str reverse"
+   ],
+   "why": "Nushell builtin `str reverse`",
+   "weight": null
+  },
+  "seq": {
+   "nu": [
+    "seq"
+   ],
+   "why": "Nushell builtin `seq`",
+   "weight": null
+  },
+  "sha256sum": {
+   "nu": [
+    "hash sha256"
+   ],
+   "why": "Nushell builtin `hash sha256`",
+   "weight": null
+  },
+  "sleep": {
+   "nu": [
+    "sleep"
+   ],
+   "why": "Nushell builtin `sleep`",
+   "weight": null
+  },
+  "source": {
+   "nu": [
+    "source"
+   ],
+   "why": "Nushell keyword `source`",
+   "weight": null
+  },
+  "split": {
+   "nu": [
+    "chunks"
+   ],
+   "why": "Nushell builtin `chunks`",
+   "weight": null
+  },
+  "tac": {
+   "nu": [
+    "reverse"
+   ],
+   "why": "Nushell builtin `reverse`",
+   "weight": null
+  },
+  "test": {
+   "nu": [
+    "path exists",
+    "path type"
+   ],
+   "why": "file tests",
+   "weight": null
+  },
+  "tr": {
+   "nu": [
+    "str replace",
+    "str upcase",
+    "str downcase"
+   ],
+   "why": "character translation",
+   "weight": null
+  },
+  "watch": {
+   "nu": [
+    "watch"
+   ],
+   "why": "Nushell builtin `watch` (watches files, not a command repeat)",
+   "weight": null
+  },
+  "whoami": {
+   "nu": [
+    "whoami"
+   ],
+   "why": "Nushell builtin `whoami`",
+   "weight": null
+  }
+ },
+ "coverage": {
+  "method": "share of usage mass whose head utility has an entry in 'map'",
+  "combined": {
+   "commands_in_usage": 2098,
+   "commands_mapped": 46,
+   "mass_mapped": 0.522106
+  },
+  "nl2bash": {
+   "commands_in_usage": 271,
+   "commands_mapped": 43,
+   "mass_mapped_of_kept": 0.709513
+  },
+  "hf_bash_history": {
+   "commands_in_usage": 2022,
+   "commands_mapped": 45,
+   "mass_mapped_of_kept": 0.333745
+  },
+  "top_unmapped_combined": [
+   "sudo",
+   "git",
+   "vim",
+   "<./script>",
+   "vi",
+   "awk",
+   "chmod",
+   "make",
+   "nano",
+   "ll",
+   "cut",
+   "python",
+   "tar",
+   "apt-get",
+   "tr",
+   "less",
+   "ssh",
+   "chown",
+   "sh",
+   "su",
+   "ifconfig",
+   "dirname",
+   "docker",
+   "perl",
+   "bash",
+   "rsync",
+   "ln",
+   "split",
+   "gcc",
+   "ping",
+   "php",
+   "df",
+   "basename",
+   "mount",
+   "readlink",
+   "rev",
+   "md5sum",
+   "node",
+   "diff",
+   "systemctl",
+   "top",
+   "java",
+   "file",
+   "while",
+   "pacman",
+   "python3",
+   "seq",
+   "reboot",
+   "yes",
+   "source",
+   "gzip",
+   "more",
+   "egrep",
+   "set",
+   "yum",
+   "w",
+   "zcat",
+   "service",
+   "hostname",
+   "tac"
+  ]
+ }
+}

@@ -1,0 +1,101 @@
+[tools]
+uv = "latest"
+"aqua:nushell/nushell" = "0.117.0"
+node = "22"
+
+[env]
+HF_HUB_OFFLINE = "1"
+TRANSFORMERS_OFFLINE = "1"
+# Checkpoints are looked up under MODELS_DIR. Override it in mise.local.toml (not committed).
+MODELS_DIR = "{{config_root}}/models"
+_.path = ["{{config_root}}/.venv/bin"]
+
+[tasks.setup]
+description = "Install the toolchain and Python dependencies, then check the environment"
+run = "bash scripts/setup.sh"
+
+[tasks.verify-env]
+description = "Check Python packages, the nu binary and the two checkpoints"
+run = """
+.venv/bin/python -c "
+import os, pathlib, shutil
+import marimo, altair, pandas, mlx.core, mlx_vlm
+print('python packages: ok (marimo', marimo.__version__ + ')')
+print('nu:', 'ok' if shutil.which('nu') else 'MISSING')
+models = pathlib.Path(os.environ['MODELS_DIR'])
+for name in ['d1-2b-mlx-8bit', 'lfm3-1.7b-mlx-8bit']:
+    print(f'checkpoint {name}:', 'ok' if (models / name / 'config.json').exists() else 'MISSING (expected under MODELS_DIR)')
+"
+"""
+
+[tasks.notebook]
+description = "Open the notebook for editing"
+run = ".venv/bin/marimo edit notebook.py"
+
+[tasks.app]
+description = "Serve the notebook as an app"
+run = ".venv/bin/marimo run notebook.py"
+
+[tasks.check]
+description = "Static checks on the notebook"
+run = ".venv/bin/marimo check notebook.py"
+
+[tasks.smoke]
+description = "Build the dataset and run both training stages at their smallest size"
+run = ".venv/bin/python scripts/run_smoke_test.py"
+
+[tasks.standard]
+description = "Build the dataset and run both training stages at the standard size"
+run = ".venv/bin/python scripts/run_smoke_test.py --preset standard"
+
+[tasks.build-wasm]
+description = "Compile Nushell to WebAssembly into public/nu-wasm (needs rustup and wasm-pack; a prebuilt copy is checked in)"
+# RUSTUP_TOOLCHAIN is unset so that nu-wasm/rust-toolchain.toml picks the compiler; the path remap keeps the
+# builder's home folder out of the binary.
+run = "cd nu-wasm && env -u RUSTUP_TOOLCHAIN RUSTFLAGS=\"--remap-path-prefix=$HOME=~\" wasm-pack build --target web --release --out-dir ../public/nu-wasm --no-typescript && rm -f ../public/nu-wasm/.gitignore ../public/nu-wasm/package.json"
+
+[tasks.check-wasm]
+description = "Run every dataset sample in the WebAssembly build and compare with native nu"
+run = ".venv/bin/python scripts/check_nu_wasm.py"
+
+[tasks.fetch-onnx]
+description = "Download the 4-bit ONNX build of the target that Transformers.js runs (about 1.1 GB; the only networked step)"
+run = """
+D=webgpu-demo/models/onnx-community/LFM3-1.7B-ONNX
+B=https://huggingface.co/onnx-community/LFM3-1.7B-ONNX/resolve/main
+mkdir -p $D/onnx
+for f in config.json generation_config.json tokenizer.json tokenizer_config.json special_tokens_map.json chat_template.jinja LICENSE onnx/model_q4f16.onnx onnx/model_q4f16.onnx_data; do
+  curl -fSL -C - -o $D/$f $B/$f
+done
+"""
+
+[tasks.demo]
+description = "Serve the browser demo (WebGPU model + WebAssembly Nushell) on http://localhost:8377"
+run = "cd webgpu-demo && npm install --no-audit --no-fund && node serve.mjs"
+
+[tasks.cache-nu-docs]
+description = "Export every built-in Nushell command with its input/output types and parameters to assets/nu_commands.json"
+run = """
+mkdir -p assets
+nu --no-config-file -c "help commands | where command_type == built-in | select name category description search_terms input_output params | each {|c| $c | update params {|r| $r.params | where name != '--help(-h)' | select name type required description}} | to json --raw" > assets/nu_commands.json
+"""
+
+[tasks.fetch-usage]
+description = "Download public shell-usage data and write data/command_usage.json and data/unix_to_nushell.json"
+run = ".venv/bin/python scripts/fetch_command_usage.py"
+
+[tasks.fetch-nu-examples]
+description = "Count commands in the example code of the Nushell book and cookbook (the Nushell-native prior) into data/nushell_examples_usage.json"
+run = ".venv/bin/python scripts/fetch_nushell_examples.py"
+
+[tasks.requests]
+description = "Have the base language model write the requests for every chain (cached)"
+run = ".venv/bin/python scripts/write_requests.py"
+
+[tasks.eval-endpoint]
+description = "Score any OpenAI-compatible chat endpoint on the held-out requests (see scripts/eval_endpoint.py --help)"
+run = ".venv/bin/python scripts/eval_endpoint.py"
+
+[tasks.experiments]
+description = "Sweeps, placement ablations, final adapters and guidance comparison for both models, then the browser export"
+run = ".venv/bin/python scripts/run_experiments.py"

@@ -1,0 +1,66 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='900' height='380' viewBox='0 0 900 380'>
+<rect width='900' height='380' fill='#fcfcfb'/>
+<text x='24.0' y='30.0' font-size='16' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>How far ahead P_good's first-choice token is of its runner-up</text>
+<text x='24.0' y='50.0' font-size='12' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>1,290 tokens of 40 reference calls. Guidance can only pick a token left of the line (floor 0.1 = 2.3 nats).</text>
+<line x1='60.0' y1='320.0' x2='860.0' y2='320.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='52.0' y='324.0' font-size='11' fill='#52514e' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>0</text>
+<line x1='60.0' y1='210.5' x2='860.0' y2='210.5' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='52.0' y='214.5' font-size='11' fill='#52514e' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>50</text>
+<line x1='60.0' y1='101.0' x2='860.0' y2='101.0' stroke='#e4e3df' stroke-width='1.0'/>
+<text x='52.0' y='105.0' font-size='11' fill='#52514e' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>100</text>
+<rect x='61.0' y='315.6' width='18.0' height='4.4' fill='#eb6834' rx='2'/>
+<rect x='81.0' y='311.2' width='18.0' height='8.8' fill='#eb6834' rx='2'/>
+<rect x='101.0' y='317.8' width='18.0' height='2.2' fill='#eb6834' rx='2'/>
+<rect x='121.0' y='300.3' width='18.0' height='19.7' fill='#eb6834' rx='2'/>
+<rect x='141.0' y='309.0' width='18.0' height='11.0' fill='#eb6834' rx='2'/>
+<rect x='161.0' y='315.6' width='18.0' height='4.4' fill='#2a78d6' rx='2'/>
+<rect x='181.0' y='311.2' width='18.0' height='8.8' fill='#2a78d6' rx='2'/>
+<rect x='201.0' y='304.7' width='18.0' height='15.3' fill='#2a78d6' rx='2'/>
+<rect x='221.0' y='309.0' width='18.0' height='11.0' fill='#2a78d6' rx='2'/>
+<rect x='241.0' y='298.1' width='18.0' height='21.9' fill='#2a78d6' rx='2'/>
+<rect x='261.0' y='300.3' width='18.0' height='19.7' fill='#2a78d6' rx='2'/>
+<rect x='281.0' y='295.9' width='18.0' height='24.1' fill='#2a78d6' rx='2'/>
+<rect x='301.0' y='285.0' width='18.0' height='35.0' fill='#2a78d6' rx='2'/>
+<rect x='321.0' y='260.9' width='18.0' height='59.1' fill='#2a78d6' rx='2'/>
+<rect x='341.0' y='269.6' width='18.0' height='50.4' fill='#2a78d6' rx='2'/>
+<rect x='361.0' y='230.2' width='18.0' height='89.8' fill='#2a78d6' rx='2'/>
+<rect x='381.0' y='212.7' width='18.0' height='107.3' fill='#2a78d6' rx='2'/>
+<rect x='401.0' y='171.0' width='18.0' height='149.0' fill='#2a78d6' rx='2'/>
+<rect x='421.0' y='140.4' width='18.0' height='179.6' fill='#2a78d6' rx='2'/>
+<rect x='441.0' y='127.2' width='18.0' height='192.8' fill='#2a78d6' rx='2'/>
+<rect x='461.0' y='149.1' width='18.0' height='170.9' fill='#2a78d6' rx='2'/>
+<rect x='481.0' y='168.9' width='18.0' height='151.1' fill='#2a78d6' rx='2'/>
+<rect x='501.0' y='133.8' width='18.0' height='186.2' fill='#2a78d6' rx='2'/>
+<rect x='521.0' y='111.9' width='18.0' height='208.1' fill='#2a78d6' rx='2'/>
+<rect x='541.0' y='103.1' width='18.0' height='216.9' fill='#2a78d6' rx='2'/>
+<rect x='561.0' y='90.0' width='18.0' height='230.0' fill='#2a78d6' rx='2'/>
+<rect x='581.0' y='175.4' width='18.0' height='144.6' fill='#2a78d6' rx='2'/>
+<rect x='601.0' y='144.8' width='18.0' height='175.2' fill='#2a78d6' rx='2'/>
+<rect x='621.0' y='214.9' width='18.0' height='105.1' fill='#2a78d6' rx='2'/>
+<rect x='641.0' y='245.5' width='18.0' height='74.5' fill='#2a78d6' rx='2'/>
+<rect x='661.0' y='252.1' width='18.0' height='67.9' fill='#2a78d6' rx='2'/>
+<rect x='681.0' y='282.8' width='18.0' height='37.2' fill='#2a78d6' rx='2'/>
+<rect x='701.0' y='293.7' width='18.0' height='26.3' fill='#2a78d6' rx='2'/>
+<rect x='721.0' y='309.0' width='18.0' height='11.0' fill='#2a78d6' rx='2'/>
+<rect x='741.0' y='317.8' width='18.0' height='2.2' fill='#2a78d6' rx='2'/>
+<rect x='761.0' y='317.8' width='18.0' height='2.2' fill='#2a78d6' rx='2'/>
+<rect x='781.0' y='317.8' width='18.0' height='2.2' fill='#2a78d6' rx='2'/>
+<rect x='801.0' y='320.0' width='18.0' height='0.0' fill='#2a78d6' rx='2'/>
+<rect x='821.0' y='320.0' width='18.0' height='0.0' fill='#2a78d6' rx='2'/>
+<rect x='841.0' y='320.0' width='18.0' height='0.0' fill='#2a78d6' rx='2'/>
+<text x='60.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>0</text>
+<text x='140.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>2</text>
+<text x='220.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>4</text>
+<text x='300.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>6</text>
+<text x='380.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>8</text>
+<text x='460.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>10</text>
+<text x='540.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>12</text>
+<text x='620.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>14</text>
+<text x='700.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>16</text>
+<text x='780.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>18</text>
+<text x='860.0' y='336.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>20</text>
+<text x='460.0' y='356.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>lead in nats: log p(first choice) − log p(runner-up); last bar holds everything above 19.5</text>
+<line x1='152.1' y1='84.0' x2='152.1' y2='320.0' stroke='#0b0b0b' stroke-width='1.5' stroke-dasharray='4 3'/>
+<text x='160.1' y='94.0' font-size='12' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>floor: 19 of 1,290 tokens are within reach (1.5%)</text>
+<text x='505.0' y='84.0' font-size='11' fill='#52514e' text-anchor='middle' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>median 11.1 nats</text>
+</svg>

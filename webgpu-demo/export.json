@@ -1,0 +1,212 @@
+{
+ "merge": {
+  "adapted_weights": 142,
+  "seconds": 4.5,
+  "size_mb": 1105
+ },
+ "check": {
+  "requests": 24,
+  "well_formed": 1.0,
+  "runs": 1.0,
+  "correct": 0.9166666666666666,
+  "samples": [
+   {
+    "request": "Load etc/app.toml; then read debug from the service section.",
+    "output": "<function=run_nushell>\n<parameter=code>\nopen etc/app.toml | get service.debug\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "open etc/app.toml | get service.debug"
+   },
+   {
+    "request": "Show the contents of src/export/store.rs; then split it into lines. pls return it as JSON. (cf. ignore cfg?)",
+    "output": "<function=run_nushell>\n<parameter=code>\nopen --raw src/export/store.rs | lines | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "open --raw src/export/store.rs | lines | to json --raw"
+   },
+   {
+    "request": "List everything that is in etc. and give it to me as JSON.",
+    "output": "<function=run_nushell>\n<parameter=code>\nls etc | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "ls etc | to json --raw"
+   },
+   {
+    "request": "Load etc/app.toml; then take the storage section; then read its max_connections, or nothing if it has none.  Just name one or two of the involved items, but keep etc/app.toml exactly as written.  Don't mention any command or write code.  One line.",
+    "output": "<function=run_nushell>\n<parameter=code>\nopen etc/app.toml | get storage.max_connections | default 0\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "open etc/app.toml | get storage.max_connections | default 0"
+   },
+   {
+    "request": "Open docs/setup.md; if it is missing, return status needs_user_choice with the requested path and the candidates matching docs/*. Return it as JSON.",
+    "output": "<function=run_nushell>\n<parameter=code>\ntry { open docs/setup.md } catch { {status: 'needs_user_choice', requested: 'docs/setup.md', candidates: (glob docs/* | each {|p| $p | path relative-to (pwd)} | sort)} } | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "try { open docs/setup.md } catch { {status: 'needs_user_choice', requested: 'docs/setup.md', candidates: (glob docs/* | each {|p| $p | path relative-to (pwd)} | sort)} } | to json --raw"
+   },
+   {
+    "request": "I would like you to **list the contents of this folder as if you were inventing an inventory of a library\u2019s shelves**; **then keep the first two entries**; **then give me the name and size of each**; **and finally tell me how many entries you have** \u2014 that is **2** items.",
+    "output": "<function=run_nushell>\n<parameter=code>\nlet found = (ls | first 2); $found | select name size | length\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "let found = (ls | first 2); $found | select name size | length"
+   },
+   {
+    "request": "Read the lines of logs/app.log; then keep the last 5; then parse each line into ts, level and msg; then count the rows per level, as value and count, sorted by level. Return it as JSON with value, count.",
+    "output": "<function=run_nushell>\n<parameter=code>\nlet found = (open --raw logs/app.log | lines | last 5); $found | parse -r '(?<ts>\\S+)\\s+(?<level>\\S+)\\s+(?<msg>.*)' | get level | sort | uniq -c | sort-by value | sort-by count --reverse | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": false,
+    "code": "let found = (open --raw logs/app.log | lines | last 5); $found | parse -r '(?<ts>\\S+)\\s+(?<level>\\S+)\\s+(?<msg>.*)' | get level | sort | uniq -c | sort-by value | sort-by count --reverse | to json --raw"
+   },
+   {
+    "request": "Read the lines of logs/audit.log. Return it as JSON.",
+    "output": "<function=run_nushell>\n<parameter=code>\nopen --raw logs/audit.log | lines | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "open --raw logs/audit.log | lines | to json --raw"
+   },
+   {
+    "request": "List the items in this folder, and return the result as JSON. Only mention one or two of the folder contents, making sure it covers everything.",
+    "output": "<function=run_nushell>\n<parameter=code>\nls | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "ls | to json --raw"
+   },
+   {
+    "request": "Treat the entire project as a nested folder tree, enumerate every file and sub\u2011folder at all levels, then sum the byte counts of each leaf item like tallying the total disk usage of all installed packages.",
+    "output": "<function=run_nushell>\n<parameter=code>\nls **/* | get size | math sum\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "ls **/* | get size | math sum"
+   },
+   {
+    "request": "pls list everything under bin at any depth; then keep the first 2; then give me their names (bin 2)",
+    "output": "<function=run_nushell>\n<parameter=code>\nls bin/**/* | first 2 | get name\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "ls bin/**/* | first 2 | get name"
+   },
+   {
+    "request": "Show the contents of src/session/routes.rs; then split it into lines; then keep the first 1; then keep the lines containing 'quota'; then count them.",
+    "output": "<function=run_nushell>\n<parameter=code>\nlet found = (open --raw src/session/routes.rs | lines); $found | first 1 | where ($it | str contains 'quota') | length\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "let found = (open --raw src/session/routes.rs | lines); $found | first 1 | where ($it | str contains 'quota') | length"
+   },
+   {
+    "request": "Please look for all the files that end with the .md extension, then for each one count how many lines talk about 'auth' and rank the files from the most mentions to the fewest. Give me the result as a list showing the file name and the number of matches. Use the word auth exactly as it is.",
+    "output": "<function=run_nushell>\n<parameter=code>\nglob **/*.md | each {|p| $p | path relative-to (pwd)} | where ($it | path type) == file | par-each {|f| {file: $f, hits: (open --raw $f | lines | where ($it | str contains -i 'auth') | length)} } | where hits > 0 | sort-by file | sort-by hits --reverse | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "glob **/*.md | each {|p| $p | path relative-to (pwd)} | where ($it | path type) == file | par-each {|f| {file: $f, hits: (open --raw $f | lines | where ($it | str contains -i 'auth') | length)} } | where hits > 0 | sort-by file | sort-by hits --reverse | to json --raw"
+   },
+   {
+    "request": "List what is in this folder; then return their names; then count the lines mentioning 'quota' in each file and rank the files with any, most hits first, as file and hits; then keep the first 5. Return it as JSON with file, hits.",
+    "output": "<function=run_nushell>\n<parameter=code>\nlet found = (ls | get name); $found | where ($it | path type) == file | par-each {|f| {file: $f, hits: (open --raw $f | lines | where ($it | str contains -i 'quota') | length)} } | where hits > 0 | sort-by file | sort-by hits --reverse | first 5 | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "let found = (ls | get name); $found | where ($it | path type) == file | par-each {|f| {file: $f, hits: (open --raw $f | lines | where ($it | str contains -i 'quota') | length)} } | where hits > 0 | sort-by file | sort-by hits --reverse | first 5 | to json --raw"
+   },
+   {
+    "request": "Find all .log files across the system, including hidden ones, without specifying any command or tool.",
+    "output": "<function=run_nushell>\n<parameter=code>\nglob **/*.log | each {|p| $p | path relative-to (pwd)}\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "glob **/*.log | each {|p| $p | path relative-to (pwd)}"
+   },
+   {
+    "request": "Imagine you\u2019re opening a recipe notebook (etc/app.toml); first you flip to the \u201cstorage\u201d page; then you read the setting labeled \u201cpool_mode,\u201d and if that label is missing you assume it\u2019s the default \u201cpooled\u201d flavor.",
+    "output": "<function=run_nushell>\n<parameter=code>\nopen etc/app.toml | get storage.pool_mode | default 'pooled'\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "open etc/app.toml | get storage.pool_mode | default 'pooled'"
+   },
+   {
+    "request": "Find the paths under etc. pls return it as json cfg or dir?",
+    "output": "<function=run_nushell>\n<parameter=code>\nglob etc/**/* | each {|p| $p | path relative-to (pwd)} | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "glob etc/**/* | each {|p| $p | path relative-to (pwd)} | to json --raw"
+   },
+   {
+    "request": "Please show me all the items that are inside the bin folder, no matter how deep they are nested, and then give me that list in JSON format.",
+    "output": "<function=run_nushell>\n<parameter=code>\nls bin/**/* | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "ls bin/**/* | to json --raw"
+   },
+   {
+    "request": "List everything under logs, at any depth; then count them by file extension, most common first, as value and count; then keep the last 2; then count them.",
+    "output": "<function=run_nushell>\n<parameter=code>\nlet found = (ls logs/**/* | get name | path parse | get extension | uniq -c | sort-by value | sort-by count --reverse); $found | last 2 | length\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "let found = (ls logs/**/* | get name | path parse | get extension | uniq -c | sort-by value | sort-by count --reverse); $found | last 2 | length"
+   },
+   {
+    "request": "List everything under src, at any depth; then return their names; then count the lines mentioning 'session' in each file and rank the files with any, most hits first, as file and hits. Return it as JSON with file, hits.",
+    "output": "<function=run_nushell>\n<parameter=code>\nls src/**/* | get name | where ($it | path type) == file | par-each {|f| {file: $f, hits: (open --raw $f | lines | where ($it | str contains -i 'session') | length)} } | where hits > 0 | sort-by file | sort-by hits --reverse | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "ls src/**/* | get name | where ($it | path type) == file | par-each {|f| {file: $f, hits: (open --raw $f | lines | where ($it | str contains -i 'session') | length)} } | where hits > 0 | sort-by file | sort-by hits --reverse | to json --raw"
+   },
+   {
+    "request": "Load etc/app.toml; then take the service section. Pls return it as JSON. cfg",
+    "output": "<function=run_nushell>\n<parameter=code>\nopen etc/app.toml | get service | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "open etc/app.toml | get service | to json --raw"
+   },
+   {
+    "request": "Read the lines of **logs/audit.log** and then **count** them.",
+    "output": "<function=run_nushell>\n<parameter=code>\nopen --raw logs/audit.log | lines | length\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "open --raw logs/audit.log | lines | length"
+   },
+   {
+    "request": "List what is in **logs**; then return their **names**; then keep the last 1; then report status not_found, resolved (with file) or choose_one (with matches). Return it as JSON. Part for the whole (names only one or two of the things involved while meaning all of them). These must appear in your rewrite exactly as written: 1, logs.",
+    "output": "<function=run_nushell>\n<parameter=code>\nlet matches = (ls logs | get name | sort); let result = (if ($matches | is-empty) { {status: 'not_found'} } else if (($matches | length) > 1) { {status: 'choose_one', matches: $matches} } else { {status: 'resolved', file: ($matches | first)} }); $result | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": false,
+    "code": "let matches = (ls logs | get name | sort); let result = (if ($matches | is-empty) { {status: 'not_found'} } else if (($matches | length) > 1) { {status: 'choose_one', matches: $matches} } else { {status: 'resolved', file: ($matches | first)} }); $result | to json --raw"
+   },
+   {
+    "request": "List everything under the whole project, at any depth; then return their names; then keep the first 1; then count the lines mentioning 'auth' in each file and rank the files with any, most hits first, as file and hits; then keep the last 3; then enumerate the elements in a stream. Return it as JSON with file, hits.",
+    "output": "<function=run_nushell>\n<parameter=code>\nlet found = (ls **/* | get name); $found | first 1 | where ($it | path type) == file | par-each {|f| {file: $f, hits: (open --raw $f | lines | where ($it | str contains -i 'auth') | length)} } | where hits > 0 | sort-by file | sort-by hits --reverse | last 3 | enumerate | to json --raw\n</parameter>\n</function>\n</tool_call>",
+    "well_formed": true,
+    "runs": true,
+    "correct": true,
+    "code": "let found = (ls **/* | get name); $found | first 1 | where ($it | path type) == file | par-each {|f| {file: $f, hits: (open --raw $f | lines | where ($it | str contains -i 'auth') | length)} } | where hits > 0 | sort-by file | sort-by hits --reverse | last 3 | enumerate | to json --raw"
+   }
+  ]
+ },
+ "mlx_P_good": {
+  "well_formed": 1.0,
+  "runs": 1.0,
+  "correct": 0.95
+ }
+}

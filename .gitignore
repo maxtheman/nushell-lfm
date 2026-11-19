@@ -1,0 +1,11 @@
+.venv/
+runs/
+models/
+mise.local.toml
+.claude/
+__pycache__/
+webgpu-demo/node_modules/
+webgpu-demo/export/
+nu-wasm/target/
+webgpu-demo/models/
+data/usage_cache/

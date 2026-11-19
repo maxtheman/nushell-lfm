@@ -1,0 +1,28 @@
+{
+  "system": "Make one run_nushell tool call for the request. Preserve every requested step in order. Discover files with glob, ls and open instead of assuming their contents, and bind intermediate results with let. When a path or key may be missing, recover with try, default or is-empty and return the choices. Answer a simple question with a simple command. When the request names fields or asks for structured output, return JSON with | to json --raw. Code contains only Nushell source.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "run_nushell",
+        "description": "Execute Nushell (Nu) source in the workspace root.",
+        "parameters": {
+          "type": "object",
+          "required": [
+            "code"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "assistant_prefix": "<tool_call>\n",
+  "stop": [
+    "</tool_call>",
+    "<|im_end|>"
+  ]
+}

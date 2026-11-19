@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nushell assistant</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --page: #f4f3ef; --ink: #1f2328; --muted: #646b73; --line: #d5d3cc;
+      --term: #14161a; --term-ink: #d7dae0; --term-dim: #8b929c; --term-line: #2a2e35;
+      --ask: #e0a84b; --nu: #6cc08b; --err: #ef8a62; --ok: #6cc08b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --page: #0e0f12; --ink: #e3e5e8; --muted: #9299a3; --line: #2a2e35; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    html, body { height: 100%; }
+    main { max-width: 1500px; margin: 0 auto; padding: 16px 16px 12px; height: 100%; display: flex; flex-direction: column; }
+    h1 { font-size: 1.35rem; margin: 0 0 4px; }
+    .lead { color: var(--muted); margin: 0 0 16px; max-width: 70ch; }
+    .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 12px; }
+    .bar label { display: grid; gap: 3px; font-size: 0.78rem; color: var(--muted); }
+    select, button { font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+    button { cursor: pointer; }
+    #status { font-size: 0.82rem; color: var(--muted); margin-left: auto; text-align: right; min-height: 1.3em; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; flex: 1; min-height: 0; }
+    @media (max-width: 820px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+    .term { background: var(--term); color: var(--term-ink); border-radius: 10px; border: 1px solid var(--term-line); display: flex; flex-direction: column; min-height: 420px; height: 100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    #scroll { flex: 1; overflow: auto; padding: 14px 16px 6px; }
+    .entry { margin-bottom: 10px; }
+    .line { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .out { white-space: pre; overflow-x: auto; color: var(--term-ink); line-height: 1.2; scrollbar-width: thin; scrollbar-color: var(--term-line) transparent; }
+    .dim { color: var(--term-dim); }
+    .who-ask { color: var(--ask); } .who-nu { color: var(--nu); } .err { color: var(--err); } .good { color: var(--ok); }
+    .inputrow { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--term-line); padding: 10px 14px; }
+    #mode { font: inherit; border-radius: 5px; padding: 2px 9px; border: 1px solid currentColor; background: transparent; min-width: 4.2em; }
+    #mode.ask { color: var(--ask); } #mode.nu { color: var(--nu); }
+    #input { flex: 1; min-width: 0; font: inherit; color: var(--term-ink); background: transparent; border: 0; outline: 0; }
+    #input::placeholder { color: var(--term-dim); }
+    aside h2 { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin: 2px 0 8px; text-transform: none; }
+    aside { display: flex; flex-direction: column; min-height: 0; }
+    #ideas { display: grid; gap: 6px; overflow: auto; flex: 1; min-height: 120px; align-content: start; }
+    #ideas button { text-align: left; font-size: 0.85rem; line-height: 1.35; }
+    #tree { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: pre; overflow: auto; max-height: 190px; margin: 0 0 16px; }
+    kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Nushell assistant</h1>
+    <p class="lead">A shell session that runs entirely in this tab. Ask for something in plain words and the fine-tuned model writes the Nushell command, which then runs in the session. Or type Nushell yourself. The model runs on WebGPU; Nushell runs as WebAssembly over an in-memory project.</p>
+
+    <div class="bar">
+      <label>Project <select id="env"></select></label>
+      <label>Model
+        <select id="model">
+          <option value="nushell-lfm3-1.7b">Fine-tuned (P_good merged, 4-bit)</option>
+          <option value="onnx-community/LFM3-1.7B-ONNX">Base model (4-bit)</option>
+        </select>
+      </label>
+      <button id="reset" title="Restore the project files and clear variables">Reset project</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="layout">
+      <div class="term">
+        <div id="scroll" aria-live="polite"></div>
+        <div class="inputrow">
+          <button id="mode" class="ask" title="Tab switches between asking the model and typing Nushell">ask</button>
+          <input id="input" autocomplete="off" spellcheck="false" placeholder="Ask for something, or press Tab to type Nushell" />
+        </div>
+      </div>
+      <aside>
+        <h2>Files in this project</h2>
+        <pre id="tree"></pre>
+        <h2>Requests the model has not seen</h2>
+        <div id="ideas"></div>
+      </aside>
+    </div>
+    <p class="lead" style="margin:10px 0 0"><kbd>Tab</kbd> switches between <b>ask</b> and <b>nu</b> · <kbd>↑</kbd> <kbd>↓</kbd> history · <code>clear</code> empties the screen</p>
+  </main>
+
+  <script type="module">
+    import { AutoModelForCausalLM, AutoTokenizer, TextStreamer, env } from "./node_modules/@huggingface/transformers/dist/transformers.min.js";
+    import initNu, * as nu from "/nu-wasm/nu_wasm.js";
+
+    // Everything is served from this folder: no model or runtime is fetched from the network.
+    env.allowRemoteModels = false;
+    env.allowLocalModels = true;
+    env.useBrowserCache = false;  // the model is served from this machine; a cached copy would outlive a new export
+    env.localModelPath = "./models/";
+    env.backends.onnx.wasm.wasmPaths = new URL("./node_modules/onnxruntime-web/dist/", location.href).href;
+
+    const $ = (id) => document.getElementById(id);
+    const [format, environments] = await Promise.all(["prompt_format.json", "environments.json"].map((f) => fetch(f).then((r) => r.json())));
+    await initNu();
+
+    const device = navigator.gpu ? "webgpu" : "wasm";
+    const state = { env: null, mode: "ask", history: [], at: 0, busy: false, loaded: { id: null } };
+    const status = (text) => { $("status").textContent = text; };
+
+    // ---- terminal ---------------------------------------------------------------------------------
+    function entry() {
+      const box = document.createElement("div");
+      box.className = "entry";
+      $("scroll").append(box);
+      return box;
+    }
+    function line(box, text, cls = "") {
+      const el = document.createElement("div");
+      el.className = `line ${cls}`;
+      el.textContent = text;
+      box.append(el);
+      $("scroll").scrollTop = $("scroll").scrollHeight;
+      return el;
+    }
+    function prompt(box, who, cls, text) {
+      const el = line(box, "");
+      const tag = document.createElement("span");
+      tag.className = cls;
+      tag.textContent = `${who} ❯ `;
+      el.append(tag, document.createTextNode(text));
+      return el;
+    }
+    const cwd = () => JSON.parse(nu.session_run("pwd")).stdout.replace(/^\/workspace/, "~") || "~";
+
+    function runNu(box, code) {
+      const result = JSON.parse(nu.session_run(code));
+      const text = result.ok ? result.stdout : result.stderr;
+      if (text) line(box, text, result.ok ? "out" : "err");
+      if (result.changed.length) line(box, `wrote ${result.changed.join(", ")}`, "dim");
+      return result;
+    }
+
+    // ---- model ------------------------------------------------------------------------------------
+    async function load(id) {
+      if (state.loaded.id === id) return state.loaded;
+      status(`Loading the model on ${device === "webgpu" ? "WebGPU" : "WebAssembly (no WebGPU in this browser)"}…`);
+      const tokenizer = await AutoTokenizer.from_pretrained(id);
+      const model = await AutoModelForCausalLM.from_pretrained(id, {
+        dtype: "q4f16", device,
+        progress_callback: (p) => { if (p.status === "progress" && p.total) status(`Loading the model… ${Math.round((100 * p.loaded) / p.total)}%`); },
+      });
+      state.loaded = { id, tokenizer, model };
+      return state.loaded;
+    }
+
+    // The same prompt the target was trained on (target_prompt in notebook.py).
+    function buildPrompt(tokenizer, request, known) {
+      const references = known ? known.references : [];
+      const refs = references.map((d) => `${d.title} (nushell)\n${d.text}`).join("\n\n");
+      const text = (refs ? `\nSyntax references:\n${refs}\n\n` : "\n") + `Request: ${request}\nWorkspace: ${state.env.context}\nFiles: ${Object.keys(state.env.files).sort().join(", ")}`;
+      const messages = [{ role: "system", content: format.system }, { role: "user", content: text }];
+      return tokenizer.apply_chat_template(messages, { tools: format.tools, tokenize: false, add_generation_prompt: true, enable_thinking: false }) + format.assistant_prefix;
+    }
+    const callPattern = /^<function=run_nushell>\n<parameter=code>\n([\s\S]*)\n<\/parameter>\n<\/function>\n<\/tool_call>\s*$/;
+    const partialCode = (text) => text.replace(/^<function=run_nushell>\n?(<parameter=code>\n?)?/, "").replace(/\n?<\/parameter>[\s\S]*$/, "");
+    // Records compare by content, not by the order of their keys (the notebook scores the same way).
+    const sorted = (v) => Array.isArray(v) ? v.map(sorted) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])])) : v;
+    const sameValue = (a, b) => { try { return JSON.stringify(sorted(JSON.parse(a))) === JSON.stringify(sorted(JSON.parse(b))); } catch { return a.trim() === b.trim(); } };
+
+    // The reference call, run here from the project root on the original files. (The value computed on disk
+    // can differ in directory order and directory sizes, so it is only the fallback.)
+    function referenceValue(known, cwd) {
+      if (!known.code) return known.expected;
+      const now = nu.get_files();
+      nu.set_files(JSON.stringify(state.env.files));
+      const reference = JSON.parse(nu.run(known.code));
+      nu.set_files(now);
+      const inside = (cwd || "").replace(/^\/workspace\/?/, "");
+      if (inside) nu.session_run(`cd '${inside}'`);
+      return reference.ok ? reference.stdout : known.expected;
+    }
+
+    async function ask(box, request) {
+      const known = state.env.requests.find((r) => r.request === request);
+      const { tokenizer, model } = await load($("model").value);
+      const inputs = tokenizer(buildPrompt(tokenizer, request, known), { add_special_tokens: false });
+      status("Writing the command…");
+      const typed = prompt(box, "model", "who-nu", "");
+      const code = typed.lastChild;
+      let text = "";
+      const started = performance.now();
+      const streamer = new TextStreamer(tokenizer, { skip_prompt: true, skip_special_tokens: false, callback_function: (t) => { text += t; code.textContent = partialCode(text); $("scroll").scrollTop = $("scroll").scrollHeight; } });
+      const output = await model.generate({ ...inputs, max_new_tokens: 220, do_sample: false, streamer });
+      const tokens = output.dims[1] - inputs.input_ids.dims[1];
+      const seconds = (performance.now() - started) / 1000;
+      status(`${tokens} tokens in ${seconds.toFixed(1)} s · ${(tokens / seconds).toFixed(1)} tokens/s on ${device === "webgpu" ? "WebGPU" : "WebAssembly"}`);
+      const call = text.replace(/<\|im_end\|>[\s\S]*$/, "").trim().match(callPattern);
+      if (!call) {
+        line(box, "The model did not produce a well-formed run_nushell call.", "err");
+        return;
+      }
+      code.textContent = call[1];
+      const result = runNu(box, call[1]);
+      if (known && result.ok) {
+        const same = sameValue(result.stdout, referenceValue(known, result.cwd));
+        line(box, same ? "✓ same value as the reference answer" : "✗ runs, but the value differs from the reference answer", same ? "good" : "err");
+      }
+    }
+
+    // ---- input ------------------------------------------------------------------------------------
+    function setMode(mode) {
+      state.mode = mode;
+      $("mode").textContent = mode;
+      $("mode").className = mode;
+      $("input").placeholder = mode === "ask" ? "Ask for something, or press Tab to type Nushell" : "Type Nushell, or press Tab to ask the model";
+    }
+    async function submit(text) {
+      if (!text.trim() || state.busy) return;
+      state.history.push(text);
+      state.at = state.history.length;
+      if (text.trim() === "clear") { $("scroll").textContent = ""; return; }
+      const box = entry();
+      state.busy = true;
+      $("input").disabled = true;
+      try {
+        if (state.mode === "ask") {
+          prompt(box, "you", "who-ask", text);
+          await ask(box, text.trim());
+        } else {
+          prompt(box, cwd(), "who-nu", text);
+          runNu(box, text);
+        }
+      } catch (err) {
+        line(box, String(err?.message || err), "err");
+        status("Error");
+      } finally {
+        state.busy = false;
+        $("input").disabled = false;
+        $("input").focus();
+      }
+    }
+    $("input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { const text = $("input").value; $("input").value = ""; submit(text); }
+      else if (e.key === "Tab") { e.preventDefault(); setMode(state.mode === "ask" ? "nu" : "ask"); }
+      else if (e.key === "ArrowUp" && state.at > 0) { e.preventDefault(); $("input").value = state.history[--state.at]; }
+      else if (e.key === "ArrowDown") { e.preventDefault(); state.at = Math.min(state.history.length, state.at + 1); $("input").value = state.history[state.at] ?? ""; }
+    });
+    $("mode").addEventListener("click", () => { setMode(state.mode === "ask" ? "nu" : "ask"); $("input").focus(); });
+
+    // ---- project ----------------------------------------------------------------------------------
+    function tree(paths) {
+      const lines = [];
+      let previous = [];
+      for (const path of paths) {
+        const parts = path.split("/");
+        parts.slice(0, -1).forEach((dir, depth) => { if (previous[depth] !== dir) { lines.push("  ".repeat(depth) + dir + "/"); previous = parts.slice(0, depth + 1); } });
+        previous = parts.slice(0, -1);
+        lines.push("  ".repeat(parts.length - 1) + parts.at(-1));
+      }
+      return lines.join("\n");
+    }
+    function openProject(index, announce = true) {
+      state.env = environments[index];
+      nu.set_files(JSON.stringify(state.env.files));
+      nu.session_reset();
+      $("tree").textContent = tree(Object.keys(state.env.files).sort());
+      $("ideas").textContent = "";
+      for (const r of state.env.requests) {
+        const b = document.createElement("button");
+        b.textContent = r.request;
+        b.addEventListener("click", () => { setMode("ask"); $("input").value = r.request; $("input").focus(); });
+        $("ideas").append(b);
+      }
+      if (announce) line(entry(), `Project ${state.env.title}: ${Object.keys(state.env.files).length} files, fresh session.`, "dim");
+    }
+    environments.forEach((e, i) => $("env").add(new Option(e.title, i)));
+    $("env").addEventListener("change", () => openProject($("env").value));
+    $("reset").addEventListener("click", () => openProject($("env").value));
+
+    line(entry(), `Nushell ${nu.nu_version()} (WebAssembly) · model on ${device === "webgpu" ? "WebGPU" : "WebAssembly: this browser has no WebGPU"}\nThe model loads the first time you ask.`, "dim");
+    openProject(0);
+    status("Ready");
+    $("input").focus();
+    if (new URLSearchParams(location.search).has("load")) {  // opened from the notebook: fetch the model straight away
+      load($("model").value).then(() => status(`Model loaded on ${device === "webgpu" ? "WebGPU" : "WebAssembly"} · ready`), (err) => status(`Model failed to load: ${err.message || err}`));
+    }
+    window.demo = { submit, setMode, state };  // for automated checks
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='900' height='250' viewBox='0 0 900 250'>
+<rect width='900' height='250' fill='#fcfcfb'/>
+<text x='24.0' y='30.0' font-size='16' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>The 17 wrong calls of the final adapter, by cause</text>
+<text x='24.0' y='50.0' font-size='12' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>All 231 held-out requests. Grey: the request itself is at fault, so no model could match the reference.</text>
+<text x='318.0' y='97.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>Leaves out a step the request names</text>
+<rect x='330.0' y='82.0' width='270.0' height='22.0' fill='#2a78d6' rx='4'/>
+<text x='610.0' y='97.0' font-size='12' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>6</text>
+<text x='632.0' y='97.0' font-size='10.5' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>second `enumerate` (3), `last 1` (3)</text>
+<text x='318.0' y='143.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>Writes a different step than asked</text>
+<rect x='330.0' y='128.0' width='225.0' height='22.0' fill='#2a78d6' rx='4'/>
+<text x='565.0' y='143.0' font-size='12' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>5</text>
+<text x='587.0' y='143.0' font-size='10.5' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>extra sorts, `split chars` for words, sum for count</text>
+<text x='318.0' y='189.0' font-size='12' fill='#0b0b0b' text-anchor='end' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>Request does not contain what the reference needs</text>
+<rect x='330.0' y='174.0' width='270.0' height='22.0' fill='#8d8c86' rx='4'/>
+<text x='610.0' y='189.0' font-size='12' fill='#0b0b0b' text-anchor='start' font-weight='600' font-family='-apple-system, Helvetica, Arial, sans-serif'>6</text>
+<text x='632.0' y='189.0' font-size='10.5' fill='#52514e' text-anchor='start' font-weight='400' font-family='-apple-system, Helvetica, Arial, sans-serif'>key or extension lost in an analogy, cut-off or echoed instruction</text>
+</svg>
