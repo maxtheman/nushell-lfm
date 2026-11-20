@@ -6,6 +6,7 @@ On 231 requests from four generated projects the model never saw, the fine-tuned
 
 | | |
 |---|---|
+| Write-up, demo and notebook in one place | [growth.wtf/nushell](https://growth.wtf/nushell/) |
 | Try it in the browser | [nushell-lfm-demo](https://huggingface.co/spaces/maxhugger/nushell-lfm-demo) (needs WebGPU; downloads 1.1 GB once) |
 | Nushell in WebAssembly on its own | [nu-wasm](https://huggingface.co/spaces/maxhugger/nu-wasm) |
 | The notebook, read-only | [notebook.html](https://maxhugger-nushell-lfm-demo.static.hf.space/notebook.html) |
