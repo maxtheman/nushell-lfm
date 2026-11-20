@@ -743,7 +743,7 @@ def _(BROWSER_DIR, IN_BROWSER, ROOT):
             return probe.connect_ex(("127.0.0.1", port)) == 0
 
     demo_serving = IN_BROWSER or _port_open(DEMO_PORT)  # the browser copy links to the hosted demo
-    DEMO_URL = "https://growth.wtf/nushell/demo/" if IN_BROWSER else f"http://localhost:{DEMO_PORT}/?load=1"
+    DEMO_URL = "https://maxcaldwell.dev/nushell/demo/" if IN_BROWSER else f"http://localhost:{DEMO_PORT}/?load=1"
     if not demo_serving:
         try:
             _server = http.server.ThreadingHTTPServer(("127.0.0.1", DEMO_PORT), _DemoFiles)

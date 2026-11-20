@@ -14,10 +14,10 @@ On 231 requests from four generated projects the model never saw, the fine-tuned
 
 | | |
 |---|---|
-| Write-up, demo and notebook in one place | [growth.wtf/nushell](https://growth.wtf/nushell/) |
+| Write-up, demo and notebook in one place | [maxcaldwell.dev/nushell](https://maxcaldwell.dev/nushell/) |
 | Try it in the browser | [nushell-lfm-demo](https://huggingface.co/spaces/maxhugger/nushell-lfm-demo) (needs WebGPU; downloads 1.1 GB once) |
 | Nushell in WebAssembly on its own | [nu-wasm](https://huggingface.co/spaces/maxhugger/nu-wasm) |
-| The notebook, running in your browser | [growth.wtf/nushell/notebook](https://growth.wtf/nushell/notebook/) (Nushell runs in the page; training is replayed from the saved run) |
+| The notebook, running in your browser | [maxcaldwell.dev/nushell/notebook](https://maxcaldwell.dev/nushell/notebook/) (Nushell runs in the page; training is replayed from the saved run) |
 | Lab notes | [lab-notes.html](https://maxhugger-nushell-lfm-demo.static.hf.space/lab-notes.html), or [notes/lab-notes-post.md](notes/lab-notes-post.md) |
 | LoRA adapter (MLX) | [maxhugger/nushell-lfm3-1.7b-lora](https://huggingface.co/maxhugger/nushell-lfm3-1.7b-lora) |
 | ONNX build for the browser | [maxhugger/nushell-lfm3-1.7b-onnx](https://huggingface.co/maxhugger/nushell-lfm3-1.7b-onnx) |
