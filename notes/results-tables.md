@@ -29,15 +29,16 @@ Adapter: LoRA on all linear layers, rank 8, α 16, learning rate 2e-4, batch 4, 
 
 Same system prompt, tool definition and user text; no examples; no fine-tuning.
 
-| Model | Well-formed | Runs | Correct | Count | 95% interval | Seconds per request |
-|---|---|---|---|---|---|---|
-| LFM3 1.7B with the adapter | 100% | 98% | 92.6% | 214 of 231 | 88.5–95.4% | 1.18 |
-| gpt-6-luna, reasoning off | 100% | 74% | 22.1% | 51 of 231 | 17.2–27.9% | 2.05 |
-| claude-haiku-5-5 | 100% | 90% | 13.0% | 30 of 231 | 9.3–17.9% | 1.10 |
+| Model | Well-formed | Runs | Correct | Count | 95% interval | Seconds per request | API cost per 1,000 requests |
+|---|---|---|---|---|---|---|---|
+| LFM3 1.7B with the adapter | 100% | 98% | 92.6% | 214 of 231 | 88.5–95.4% | 1.18 | none (local) |
+| gpt-6-luna, reasoning off | 100% | 74% | 22.1% | 51 of 231 | 17.2–27.9% | 2.05 | $0.10 |
+| claude-haiku-5-5 | 100% | 90% | 13.0% | 30 of 231 | 9.3–17.9% | 1.10 | $0.17 |
 
 - One reference value per request, compared exactly. A call that answers in another shape counts as wrong.
 - gpt-6-luna does not accept function tools with reasoning on at this endpoint; it ran with `reasoning_effort: "none"`.
 - On the first 40 requests alone the two hosted models had scored 32.5% and 17.5%; those 40 are one request per chain from two of the four held-out projects.
+- Costs use list prices of $0.10 in and $0.50 out per million tokens for both hosted models; they averaged 434 and 947 prompt tokens per request.
 - Times are not like for like: ours is generation on one Mac with MLX, the others are whole requests to a hosted endpoint.
 
 ## 3. Sweep and placement

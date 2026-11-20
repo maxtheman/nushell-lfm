@@ -2,6 +2,14 @@
 
 One [marimo](https://marimo.io) notebook that generates a Nushell tool-call dataset from scratch and fine-tunes LFM3 1.7B on it, on Apple Silicon with MLX, offline. The model turns a plain request into one `run_nushell` tool call. A call counts as correct only if executing it returns the reference value.
 
+| Model, on the same 231 held-out requests | Correct | 95% interval | Seconds per request | API cost per 1,000 requests |
+|---|---|---|---|---|
+| **LFM3 1.7B + LoRA (this repository)** | **92.6%** (214) | 88.5–95.4% | 1.18 | none: runs on a Mac, or in the browser |
+| gpt-6-luna, reasoning off | 22.1% (51) | 17.2–27.9% | 2.05 | $0.10 |
+| claude-haiku-5-5 | 13.0% (30) | 9.3–17.9% | 1.10 | $0.17 |
+
+Same system prompt, tool and user text for every model; the hosted models get no examples and no fine-tuning, and one reference value per request is compared exactly. Speed is about the same as the fastest hosted model, not faster: ours is generation on one Mac with MLX (about 2 seconds in the browser on WebGPU), the others are whole requests to an API. Costs use list prices of $0.10 in and $0.50 out per million tokens for both hosted models (`data/model_prices.json`).
+
 On 231 requests from four generated projects the model never saw, the fine-tuned model is correct on **214 (92.6%)**; the base model is correct on 8% of the 40 it was run on. The finished model also runs in the browser on WebGPU, next to Nushell compiled to WebAssembly.
 
 | | |
@@ -146,15 +154,7 @@ Sweep and placement ablation (200 rows, one epoch, 24 held-out requests; one req
 | convolution only | 71% |
 | attention only | 62% |
 
-Other models on all 231 held-out requests, with the same system prompt, tool and user text, no examples and no fine-tuning (`mise run eval-endpoint`):
-
-| Model | Requests | Well-formed | Runs | Returns the reference value | 95% interval | Seconds per request |
-|---|---|---|---|---|---|---|
-| LFM3 1.7B with the adapter | 231 | 100% | 98% | 92.6% (214) | 88.5–95.4% | 1.18 |
-| gpt-6-luna (reasoning off) | 231 | 100% | 74% | 22.1% (51) | 17.2–27.9% | 2.05 |
-| claude-haiku-5-5 | 231 | 100% | 90% | 13.0% (30) | 9.3–17.9% | 1.10 |
-
-The comparison is on this dataset's own convention: one reference value per request, compared exactly. A call that answers the request in another shape counts as wrong, which the fine-tuned model has learned to avoid and the others have not been shown. Times are not like for like: ours is generation on one Mac with MLX, the others are whole requests to a hosted endpoint.
+The comparison with hosted models is the table at the top of this page; `mise run eval-endpoint` adds a row for any OpenAI-compatible endpoint.
 
 **What the held-out score measures.** No environment is shared between training and held-out data. Within the 77 held-out chains, 15 have a command identical to a training command (the project differs, the command happens not to), 50 follow a chain pattern that also occurs in training, and 27 are new combinations of familiar steps.
 

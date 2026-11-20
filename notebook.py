@@ -73,7 +73,7 @@ def _(DEMO_URL, IN_BROWSER, MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, demo_note
     _missing = [] if IN_BROWSER else [name for name, ok in _ready if not ok]
     _gif = ROOT / "assets" / "usage.gif"
     # The header states the results, read from the saved reports (nothing is shown for a part that is missing).
-    _points = []
+    _points, _table = [], ""
     _file = RUNS_DIR / "target" / "report.json"
     if _file.exists():
         _r = json.loads(_file.read_text(encoding="utf-8"))
@@ -83,8 +83,17 @@ def _(DEMO_URL, IN_BROWSER, MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, demo_note
         _points.append(f"**After training:** {_good:.0%} of the same {_n}{_all}.")
         _others = [json.loads(f.read_text(encoding="utf-8")) for f in sorted((RUNS_DIR / "providers").glob("*.json"))]
         _others = sorted((o for o in _others if o.get("dataset") == _r["dataset"]), key=lambda o: -o["summary"]["correct"])
-        if _others:
-            _points.append("**Other models:** " + ", ".join(f"{o['name']} {o['summary']['correct']:.1%} of {o['summary']['requests']}" for o in _others) + ".")
+        # accuracy, latency and cost side by side; prices are list prices per million tokens (data/model_prices.json)
+        _prices = json.loads((ROOT / "data" / "model_prices.json").read_text(encoding="utf-8"))["prices"]
+        _timing = _r.get("timing") or {}
+        _total = _n + _rest["rows"] if _rest else _n
+        _mine = (_good * _n + _rest["correct"] * _rest["rows"]) / _total if _rest else _good
+        _rows = [f"| **LFM3 1.7B + LoRA (this notebook)** | {_total} | **{_mine:.1%}** | {_timing.get('seconds_per_request', '')} | none: runs on this machine |"]
+        for _o in _others:
+            _s, _price = _o["summary"], _prices.get(_o["model"])
+            _cost = f"${(_s['prompt_tokens'] * _price['input'] + _s['completion_tokens'] * _price['output']) / 1e6 / _s['requests'] * 1000:.2f}" if _price else ""
+            _rows.append(f"| {_o['name']} | {_s['requests']} | {_s['correct']:.1%} | {_s.get('seconds_per_request') or ''} | {_cost} |")
+        _table = "| Model | Requests | Correct | Seconds per request | API cost per 1,000 requests |\n|:---|:---|:---|:---|:---|\n" + "\n".join(_rows)
         _c = _r["config"]
         _points.append(
             f"**Training:** one LoRA of rank {_c['rank']} on {_c['placement'].replace('_', ' ')} layers ({_r['trainable_parameters'] / 1e6:.1f} M parameters), "
@@ -96,6 +105,7 @@ def _(DEMO_URL, IN_BROWSER, MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, demo_note
     _intro = mo.md(
         "# Teaching a small model to drive Nushell\n\n"
         "LFM3 1.7B turns a plain request into one `run_nushell` tool call. A call counts only if running it returns the reference value.\n\n"
+        + (_table + "\n\n" if _table else "")
         + "\n".join(f"- {point}" for point in _points)
     )
     _side = (

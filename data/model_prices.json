@@ -1,0 +1,7 @@
+{
+  "note": "List prices in US dollars per million tokens, used for the cost column of the comparison. Looked up on 2026-11-19; check the providers' pricing pages before relying on them.",
+  "prices": {
+    "claude-haiku-5-5": {"input": 0.10, "output": 0.50, "source": "https://platform.claude.com/docs/en/about-claude/pricing"},
+    "gpt-6-luna": {"input": 0.10, "output": 0.50, "source": "https://developers.openai.com/api/docs/pricing"}
+  }
+}

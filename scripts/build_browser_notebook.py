@@ -56,7 +56,7 @@ def main() -> int:
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for path in sorted((ROOT / "nushell_lfm").rglob("*.py")):
             z.write(path, path.relative_to(ROOT))
-        for name in ("assets/nu_commands.json", "data/command_usage.json", "data/unix_to_nushell.json", "data/nushell_examples_usage.json", "scripts/eval_endpoint.py", "assets/usage.gif"):
+        for name in ("assets/nu_commands.json", "data/command_usage.json", "data/unix_to_nushell.json", "data/nushell_examples_usage.json", "data/model_prices.json", "scripts/eval_endpoint.py", "assets/usage.gif"):
             z.write(ROOT / name, name)
         z.writestr("runs/nu-cache.json", json.dumps(cache))
         z.writestr("runs/target/report.json", json.dumps(report))
