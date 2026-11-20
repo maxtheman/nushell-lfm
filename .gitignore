@@ -11,3 +11,4 @@ webgpu-demo/models/
 data/usage_cache/
 runs-sandbox/
 dist/
+public/bundle.zip

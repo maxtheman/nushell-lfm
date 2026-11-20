@@ -3,6 +3,7 @@
 import asyncio
 import os
 import shutil
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -22,6 +23,9 @@ RUNS_DIR = Path(os.environ.get("NUSHELL_LFM_RUNS", ROOT / "runs")).expanduser()
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
 SANDBOX = RUNS_DIR.resolve() != (ROOT / "runs").resolve()
 nu_path = shutil.which("nu")
+# In the browser (the notebook exported to WebAssembly) there is no nu binary, no model and no threads:
+# Nushell runs through its own WebAssembly build, and training is replayed from the saved results.
+IN_BROWSER = sys.platform == "emscripten"
 
 # The modules whose functions the notebook shows running line by line.
 _SOURCE_MODULES = ("environments", "catalog", "chains", "dataset", "target", "export")

@@ -5,10 +5,12 @@ app = marimo.App(width="full", app_title="Teaching a small model to drive Nushel
 
 
 @app.cell
-def _():
+async def _():
     import asyncio
     import json
+    import os
     import shutil
+    import sys
     import time
     from collections import Counter
 
@@ -16,12 +18,38 @@ def _():
     import marimo as mo
     import pandas as pd
 
+    # As a WebAssembly export this notebook runs in the page. There the pipeline's code and saved results arrive
+    # as one archive, Nushell is its own WebAssembly build, and the buttons replay what the saved runs did
+    # (no model is loaded and nothing is trained).
+    IN_BROWSER = sys.platform == "emscripten"
+    # Replay is also available locally (NUSHELL_LFM_REPLAY=1), to see the page as the browser copy behaves.
+    REPLAY = IN_BROWSER or bool(os.environ.get("NUSHELL_LFM_REPLAY"))
+    if IN_BROWSER:
+        import io
+        import zipfile
+
+        import micropip
+        from pyodide.code import run_js
+        from pyodide.http import pyfetch
+
+        _here = str(mo.notebook_location()).rstrip("/")
+        await micropip.install(["faker==40.54.0", "polyfactory==3.5.0", "networkx==3.7", "wigglystuff==0.6.0"])
+        zipfile.ZipFile(io.BytesIO(await (await pyfetch(f"{_here}/public/bundle.zip")).bytes())).extractall("/bundle")
+        sys.path.insert(0, "/bundle")
+        _nu = await run_js(f'import("{_here}/public/nu-wasm/nu_wasm.js")')
+        await _nu.default()
+        from nushell_lfm import environments as _environments
+
+        _environments.use_browser_nu(_nu)
+
     from nushell_lfm.core import MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, SANDBOX, function_source, mlx_thread, model_path, nu_path
 
     return (
         asyncio,
         Counter,
+        IN_BROWSER,
         MODELS_DIR,
+        REPLAY,
         MODEL_FOLDERS,
         ROOT,
         RUNS_DIR,
@@ -40,9 +68,9 @@ def _():
 
 
 @app.cell
-def _(DEMO_PORT, MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, demo_notes, json, mo, nu_path, row):
+def _(DEMO_URL, IN_BROWSER, MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, demo_notes, json, mo, nu_path, row):
     _ready = [("Nushell", bool(nu_path)), ("LFM3 checkpoint", (MODELS_DIR / MODEL_FOLDERS["target"] / "config.json").exists())]
-    _missing = [name for name, ok in _ready if not ok]
+    _missing = [] if IN_BROWSER else [name for name, ok in _ready if not ok]
     _gif = ROOT / "assets" / "usage.gif"
     # The header states the results, read from the saved reports (nothing is shown for a part that is missing).
     _points = []
@@ -62,6 +90,8 @@ def _(DEMO_PORT, MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, demo_notes, json, mo
             f"**Training:** one LoRA of rank {_c['rank']} on {_c['placement'].replace('_', ' ')} layers ({_r['trainable_parameters'] / 1e6:.1f} M parameters), "
             f"{_r['rows']['fit']} rows × {_c['epochs']} epochs, {max(h['step'] for h in _r['history'] if h['adapter'] == 'P_good')} updates, on a Mac with MLX."
         )
+    if IN_BROWSER:
+        _points.append("**This copy runs in your browser:** the environments, chains and Nushell are computed here; training, request writing and the other models are replayed from the saved runs.")
     _points.append("**In this notebook:** the generated environments, the command chains and requests, the training run, the model in 3D with and without its LoRA, and the comparison with other models.")
     _intro = mo.md(
         "# Teaching a small model to drive Nushell\n\n"
@@ -75,7 +105,7 @@ def _(DEMO_PORT, MODELS_DIR, MODEL_FOLDERS, ROOT, RUNS_DIR, demo_notes, json, mo
     )
     # opens the finished model on WebGPU and a Nushell session over a held-out environment, in a new tab
     _demo = mo.Html(
-        f'''<div><a href="http://localhost:{DEMO_PORT}/?load=1" target="_blank" rel="noopener"
+        f'''<div><a href="{DEMO_URL}" target="_blank" rel="noopener"
               style="display: inline-block; padding: 6px 14px; font: 600 0.9rem/1.2 system-ui, sans-serif; text-decoration: none; color: inherit;
                      border: 1.5px solid currentColor; border-radius: 8px;">Open demo ↗</a></div>'''
     )
@@ -384,6 +414,8 @@ def _():
 
 @app.cell
 async def _(
+    REPLAY,
+    asyncio,
     MODEL_FOLDERS,
     PRIOR_INFO,
     assemble_dataset,
@@ -410,7 +442,12 @@ async def _(
     # the command needs falls back to the description composed from the chain's steps. The split is by environment:
     # one in five is held out whole. The splits and a manifest with the environment seeds are saved on every build.
     _error = None
-    if request_btn.value:
+    if request_btn.value and REPLAY:  # replay: the requests the model wrote are in the saved file
+        _stored = load_model_requests(ival(k_variants_slider))
+        for _chain in mo.status.progress_bar(verified_chains[::8], title="Writing requests with the model (replayed)", remove_on_exit=True):
+            mo.output.replace(mo.md("> " + (_stored.get(_chain["chain_id"], {}).get("requests") or [{"text": _chain["asks"][0]}])[0]["text"]))
+            await asyncio.sleep(0.06)
+    elif request_btn.value:
         with mo.status.spinner(title="Writing requests with the model…"):
             try:
                 await mlx_thread(write_requests_with_model, verified_chains, ival(k_variants_slider), model_path(MODEL_FOLDERS["target"]))
@@ -459,60 +496,6 @@ def _(MODEL_FOLDERS, PLACEMENTS, fader, knob, mo):
     target_batch = knob("Batch", 1, 8, 1, 4)
     target_train_btn = mo.ui.run_button(label="▶")
     return target_alpha_mult, target_batch, target_lr, target_model_path, target_placement, target_preset, target_rank, target_train_btn
-
-
-@app.cell
-async def _(
-    TARGET_DIR,
-    dataset,
-    fval,
-    ival,
-    json,
-    mlx_thread,
-    mo,
-    model_path,
-    run_target_experiments,
-    run_target_pipeline,
-    shutil,
-    target_alpha_mult,
-    target_batch,
-    target_lr,
-    target_model_path,
-    target_placement,
-    target_preset,
-    target_rank,
-    target_train_btn,
-    time,
-):
-    target_error, _log = None, []
-    if target_train_btn.value:
-        _base = {"model_path": model_path(target_model_path.value), "batch": ival(target_batch), "seed": 73, "probe_share": 0.15, "max_new": 220}
-        _own = {"rank": ival(target_rank), "alpha": ival(target_rank) * fval(target_alpha_mult), "lr": fval(target_lr) * 1e-4, "placement": target_placement.value}
-        _full = {"n_good": 10_000, "n_eval": 40, "n_loss": 24, "epochs": 2}
-        _smoke = None
-        with mo.status.spinner(title="Training LFM3…"):
-            try:
-                if target_preset.value != "smoke" and TARGET_DIR.exists():  # a real run replaces the saved adapter: keep the old one
-                    shutil.copytree(TARGET_DIR, TARGET_DIR.parent / "previous" / f"target-{int(time.time())}")
-                if target_preset.value == "protocol":
-                    _sizes = {"ranks": [8, 16], "learning_rates": [1e-4, 2e-4, 4e-4], "n_sweep": 200, "n_sweep_eval": 24, "full": _full}
-                    await mlx_thread(run_target_experiments, _base, dataset, _sizes, _log.append)
-                elif target_preset.value == "standard":
-                    await mlx_thread(run_target_pipeline, {**_base, **_own, **_full}, dataset, _log.append)
-                else:
-                    # the smoke budget only proves the code path; it is written to runs/smoke, never over a real adapter
-                    _cfg = {**_base, **_own, "n_good": 8, "n_eval": 4, "n_loss": 4, "epochs": 1, "score_all": False, "out_dir": str(TARGET_DIR.parent / "smoke")}
-                    _smoke = await mlx_thread(run_target_pipeline, _cfg, dataset, _log.append)
-            except Exception as _exc:
-                target_error = f"{type(_exc).__name__}: {_exc}"
-    _file = TARGET_DIR / "report.json"
-    target_report = json.loads(_file.read_text(encoding="utf-8")) if _file.exists() else None
-    if target_train_btn.value and not target_error and target_preset.value == "smoke" and _smoke:
-        target_report = _smoke
-    _file = TARGET_DIR / "experiments.json"
-    target_experiments = json.loads(_file.read_text(encoding="utf-8")) if _file.exists() else None
-    target_ran = target_preset.value if target_train_btn.value and not target_error else None
-    return target_error, target_experiments, target_ran, target_report
 
 
 @app.cell
@@ -601,6 +584,69 @@ def _(
 
 
 @app.cell
+async def _(
+    REPLAY,
+    TARGET_DIR,
+    asyncio,
+    dataset,
+    fval,
+    ival,
+    json,
+    mlx_thread,
+    mo,
+    model_path,
+    run_target_experiments,
+    run_target_pipeline,
+    shutil,
+    target_alpha_mult,
+    target_batch,
+    target_lr,
+    target_model_path,
+    target_placement,
+    target_preset,
+    target_rank,
+    target_train_btn,
+    time,
+):
+    target_error, _log, _smoke = None, [], None
+    if target_train_btn.value and REPLAY:  # replay the saved run's loss, update by update
+        _saved = json.loads((TARGET_DIR / "report.json").read_text(encoding="utf-8"))
+        _steps = [h for h in _saved["history"] if h["adapter"] == "P_good"]
+        for _h in mo.status.progress_bar(_steps[::3], title=f"Training LFM3 (replay of the saved run, {len(_steps)} updates)", remove_on_exit=True):
+            mo.output.replace(mo.md(f"update {_h['step']} of {len(_steps)} · loss {_h['loss']:.3f}"))
+            await asyncio.sleep(0.03)
+        mo.output.replace(mo.md(f"Replayed {len(_steps)} updates. The charts below are the saved run's."))
+    elif target_train_btn.value:
+        _base = {"model_path": model_path(target_model_path.value), "batch": ival(target_batch), "seed": 73, "probe_share": 0.15, "max_new": 220}
+        _own = {"rank": ival(target_rank), "alpha": ival(target_rank) * fval(target_alpha_mult), "lr": fval(target_lr) * 1e-4, "placement": target_placement.value}
+        _full = {"n_good": 10_000, "n_eval": 40, "n_loss": 24, "epochs": 2}
+        _smoke = None
+        with mo.status.spinner(title="Training LFM3…"):
+            try:
+                if target_preset.value != "smoke" and TARGET_DIR.exists():  # a real run replaces the saved adapter: keep the old one
+                    shutil.copytree(TARGET_DIR, TARGET_DIR.parent / "previous" / f"target-{int(time.time())}")
+                if target_preset.value == "protocol":
+                    _sizes = {"ranks": [8, 16], "learning_rates": [1e-4, 2e-4, 4e-4], "n_sweep": 200, "n_sweep_eval": 24, "full": _full}
+                    await mlx_thread(run_target_experiments, _base, dataset, _sizes, _log.append)
+                elif target_preset.value == "standard":
+                    await mlx_thread(run_target_pipeline, {**_base, **_own, **_full}, dataset, _log.append)
+                else:
+                    # the smoke budget only proves the code path; it is written to runs/smoke, never over a real adapter
+                    _cfg = {**_base, **_own, "n_good": 8, "n_eval": 4, "n_loss": 4, "epochs": 1, "score_all": False, "out_dir": str(TARGET_DIR.parent / "smoke")}
+                    _smoke = await mlx_thread(run_target_pipeline, _cfg, dataset, _log.append)
+            except Exception as _exc:
+                target_error = f"{type(_exc).__name__}: {_exc}"
+    _file = TARGET_DIR / "report.json"
+    target_report = json.loads(_file.read_text(encoding="utf-8")) if _file.exists() else None
+    if target_train_btn.value and not target_error and target_preset.value == "smoke" and _smoke:
+        target_report = _smoke
+    _file = TARGET_DIR / "experiments.json"
+    target_experiments = json.loads(_file.read_text(encoding="utf-8")) if _file.exists() else None
+    target_ran = target_preset.value if target_train_btn.value and not target_error and not REPLAY else None
+    return target_error, target_experiments, target_ran, target_report
+
+
+@app.cell
 def _():
     from nushell_lfm.export import BASE_ONNX_DIR, BROWSER_DIR, EXPORT_ONNX_DIR, check_browser_export, export_for_browser, write_browser_requests
 
@@ -651,7 +697,7 @@ async def _(
 
 
 @app.cell
-def _(BROWSER_DIR, ROOT):
+def _(BROWSER_DIR, IN_BROWSER, ROOT):
     # The demo page and the WebAssembly build of Nushell are static files, served from inside the notebook so
     # that "Open demo" needs no other process.
     import http.server
@@ -686,7 +732,8 @@ def _(BROWSER_DIR, ROOT):
             probe.settimeout(0.3)
             return probe.connect_ex(("127.0.0.1", port)) == 0
 
-    demo_serving = _port_open(DEMO_PORT)
+    demo_serving = IN_BROWSER or _port_open(DEMO_PORT)  # the browser copy links to the hosted demo
+    DEMO_URL = "https://growth.wtf/nushell/demo/" if IN_BROWSER else f"http://localhost:{DEMO_PORT}/?load=1"
     if not demo_serving:
         try:
             _server = http.server.ThreadingHTTPServer(("127.0.0.1", DEMO_PORT), _DemoFiles)
@@ -694,11 +741,11 @@ def _(BROWSER_DIR, ROOT):
             demo_serving = True
         except OSError:
             demo_serving = False
-    return DEMO_PORT, demo_serving
+    return DEMO_PORT, DEMO_URL, demo_serving
 
 
 @app.cell
-def _(BASE_ONNX_DIR, BROWSER_DIR, DEMO_PORT, EXPORT_ONNX_DIR, demo_serving, export_error):
+def _(BASE_ONNX_DIR, BROWSER_DIR, DEMO_PORT, EXPORT_ONNX_DIR, IN_BROWSER, demo_serving, export_error):
     # What would stop the demo from working; shown under the Open demo button at the top.
     demo_notes = []
     if export_error:
@@ -711,6 +758,8 @@ def _(BASE_ONNX_DIR, BROWSER_DIR, DEMO_PORT, EXPORT_ONNX_DIR, demo_serving, expo
         demo_notes.append("Transformers.js is not installed: run `mise run setup`.")
     if not demo_serving:
         demo_notes.append(f"Port {DEMO_PORT} is taken by something else, so the demo cannot be served from here.")
+    if IN_BROWSER:
+        demo_notes = []
     return (demo_notes,)
 
 
@@ -729,6 +778,7 @@ def _(fader, mo):
 
 @app.cell
 async def _(
+    REPLAY,
     PROVIDER_SLOTS,
     ROOT,
     TARGET_SYSTEM,
@@ -759,7 +809,11 @@ async def _(
     _held_out = len(dataset["target"]["dev"])
     _limit = min(ival(provider_requests), _held_out)
     _notes = []
-    if provider_run_btn.value:
+    if provider_run_btn.value and REPLAY:  # nothing is sent anywhere from this copy: the saved results are shown again
+        for _saved in mo.status.progress_bar(_eval.saved_results(), title="Asking the other models (replay of the saved results)", remove_on_exit=True):
+            await asyncio.sleep(0.8)
+        _notes.append("This copy sends nothing: these are the saved results. Run the notebook locally to score an endpoint.")
+    elif provider_run_btn.value:
         _defs = {
             "dataset": dataset, "TARGET_SYSTEM": TARGET_SYSTEM, "TARGET_TOOLS": TARGET_TOOLS,
             "parse_tool_call": parse_tool_call, "run_nu": run_nu, "same_output": same_output,

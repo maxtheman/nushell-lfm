@@ -9,7 +9,7 @@ On 231 requests from four generated projects the model never saw, the fine-tuned
 | Write-up, demo and notebook in one place | [growth.wtf/nushell](https://growth.wtf/nushell/) |
 | Try it in the browser | [nushell-lfm-demo](https://huggingface.co/spaces/maxhugger/nushell-lfm-demo) (needs WebGPU; downloads 1.1 GB once) |
 | Nushell in WebAssembly on its own | [nu-wasm](https://huggingface.co/spaces/maxhugger/nu-wasm) |
-| The notebook, read-only | [notebook.html](https://maxhugger-nushell-lfm-demo.static.hf.space/notebook.html) |
+| The notebook, running in your browser | [growth.wtf/nushell/notebook](https://growth.wtf/nushell/notebook/) (Nushell runs in the page; training is replayed from the saved run) |
 | Lab notes | [lab-notes.html](https://maxhugger-nushell-lfm-demo.static.hf.space/lab-notes.html), or [notes/lab-notes-post.md](notes/lab-notes-post.md) |
 | LoRA adapter (MLX) | [maxhugger/nushell-lfm3-1.7b-lora](https://huggingface.co/maxhugger/nushell-lfm3-1.7b-lora) |
 | ONNX build for the browser | [maxhugger/nushell-lfm3-1.7b-onnx](https://huggingface.co/maxhugger/nushell-lfm3-1.7b-onnx) |
@@ -71,6 +71,7 @@ mise run train -- --preset protocol   # sweep over rank and learning rate, place
 mise run check-wasm    # run every chain's reference call in WebAssembly Nushell and compare with native
 mise run eval-endpoint -- --base-url URL --model NAME   # score any OpenAI-compatible endpoint on the same requests
 mise run demo          # serve the browser demo
+mise run build-notebook   # export the notebook to run in the browser (WebAssembly) into dist/notebook
 ```
 
 The smoke size proves the code path and is too small to learn anything.
@@ -91,6 +92,10 @@ run_nu("ls | length", row["env"])                  # run Nushell in a throwaway 
 ### Scoring other models
 
 `scripts/eval_endpoint.py` sends the held-out requests to any OpenAI-compatible chat endpoint with the same system prompt, tool and user text our model gets, executes the call that comes back, and applies the same rule: correct means it returns the reference value. The key is read from an environment variable (`--api-key-env NAME`), results go to `runs/providers/`, and `--compare` prints every endpoint scored so far next to our model. `--export` writes the evaluation set to `runs/eval/eval_set.jsonl`. The notebook's last section, **Other models**, runs the same thing from the page: enter up to three endpoints in the form (`PROVIDER_n_URL`, `PROVIDER_n_KEY`, `PROVIDER_n_MODELS` as a comma-separated list, or set those variables in `mise.local.toml`), pick how many requests, press ▶. This is the one step that sends data off the machine: the request text and the generated file names go to the endpoint you name.
+
+### The notebook in the browser
+
+`mise run build-notebook` exports the notebook with `marimo export html-wasm`. In the page, Python runs in Pyodide: the environments, chains and dataset are generated there, and Nushell is the WebAssembly build in `public/nu-wasm`, so the faders and checkboxes compute real results. The steps that need the model (writing requests, training, asking other models) replay the saved runs; ▶ shows the saved loss update by update. `NUSHELL_LFM_REPLAY=1 mise run app` gives the same replay behaviour locally.
 
 ## How the data is made
 

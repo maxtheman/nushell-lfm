@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 
 from .core import RUNS_DIR, nu_path
+from .core import IN_BROWSER
 
 from dataclasses import asdict, dataclass
 
@@ -214,6 +215,7 @@ def _materialize(base_dir: Path, files: dict) -> None:
 
 FIXED_TIME = 1772438400  # 2026-03-02T08:00:00Z, the same instant the WebAssembly build reports
 _digests = {}
+_files = {}  # environment id -> (its files, the files of its second copy)
 
 def build_environments(count: int) -> list[dict]:
     """Generate `count` environments and write each to disk twice: as it is, and as its second copy."""
@@ -221,8 +223,10 @@ def build_environments(count: int) -> list[dict]:
     for seed in range(1, count + 1):
         layout = environment_layout(seed)
         files, variant = environment_files(layout), environment_files(layout, 1, extra=True)
-        _materialize(WORKSPACES_DIR / layout["id"] / "base", files)
-        _materialize(WORKSPACES_DIR / layout["id"] / "variant", variant)
+        _files[layout["id"]] = (files, variant)
+        if not IN_BROWSER:  # in the browser the files are handed to the WebAssembly Nushell from memory
+            _materialize(WORKSPACES_DIR / layout["id"] / "base", files)
+            _materialize(WORKSPACES_DIR / layout["id"] / "variant", variant)
         _digests[layout["id"]] = hashlib.sha1(json.dumps([files, variant], sort_keys=True).encode()).hexdigest()[:12]
         dirs = layout["dirs"]
         title = f"{layout['id']} · {layout['ext']} · {dirs['src']}/ {dirs['cfg']}/ {dirs['logs']}/"
@@ -281,6 +285,11 @@ def run_nu(code: str, env: str, variant: bool = False, timeout: float = 8.0, cac
     key = hashlib.sha1(f"{_nu_version}\n{_digests.get(env)}\n{variant}\n{code}".encode()).hexdigest()
     if cache and key in _cache:
         return _cache[key]
+    if _browser_nu is not None:
+        result = _run_in_browser(code, env, variant)
+        if cache:
+            _cache[key] = result
+        return result
     if not nu_path:
         return {"ok": False, "returncode": -1, "stdout": "", "stderr": "nu is not on PATH", "parse_error": False, "changed": []}
     scratch = Path(tempfile.mkdtemp(prefix="nu-run-")).resolve()
@@ -312,8 +321,26 @@ def run_nu(code: str, env: str, variant: bool = False, timeout: float = 8.0, cac
         _cache[key] = result
     return result
 
+_browser_nu = None
+
+def use_browser_nu(module) -> None:
+    """Run Nushell through its WebAssembly build (the `nu_wasm.js` module, already initialised) whenever a
+    result is not in the cache. The build reports the same release as the native binary the cache was made with."""
+    global _browser_nu, _nu_version
+    _browser_nu, _nu_version = module, str(module.nu_version())
+
+def _run_in_browser(code: str, env: str, variant: bool) -> dict:
+    _browser_nu.set_files(json.dumps(_files[env][1 if variant else 0]))
+    out = json.loads(str(_browser_nu.run(code)))
+    return {
+        "ok": bool(out["ok"]), "returncode": 0 if out["ok"] else 1, "stdout": out["stdout"].strip(), "stderr": out["stderr"].strip(),
+        "parse_error": bool(out["parse_error"]), "changed": sorted(out.get("changed", [])),
+    }
+
 def run_nu_many(jobs: list[tuple]) -> list[dict]:
     """`(code, env)` or `(code, env, variant)` jobs, run eight at a time; results in order."""
+    if IN_BROWSER:  # no threads there
+        return [run_nu(*job) for job in jobs]
     with ThreadPoolExecutor(max_workers=8) as pool:
         return list(pool.map(lambda job: run_nu(*job), jobs))
 

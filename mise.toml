@@ -107,3 +107,7 @@ run = ".venv/bin/python scripts/eval_endpoint.py"
 [tasks.build-demo]
 description = "Collect the browser demo into dist/demo as a static site; MODEL=owner/name makes it load the model from the Hugging Face Hub"
 run = "bash scripts/build_demo.sh"
+
+[tasks.build-notebook]
+description = "Export the notebook to run in the browser (WebAssembly) into dist/notebook: Nushell runs for real, training is replayed"
+run = ".venv/bin/python scripts/build_browser_notebook.py"
